@@ -1,0 +1,111 @@
+/dim 30 def
+/d1 dim def
+/d2 dim 2 div def
+/d3 dim 3 div def
+/d4 dim 4 div def
+
+/sc dim def
+
+%radius of target
+/r dim 4 div def
+%radius of control
+/rs dim 10 div def
+
+%line width
+/lw 0.02 dim mul def
+%font size
+%/fs 4 dim 8 div mul def
+/fs d2 d4 2 div add def
+
+
+/control{
+	d2 d2 neg rmoveto
+	currentpoint
+	gsave newpath rs 0 360 arc closepath lw setlinewidth 0 setgray fill	grestore
+	d2 neg d2 rmoveto
+}def
+
+/target{
+	d2 d2 neg rmoveto
+	currentpoint
+	gsave newpath r 0 360 arc closepath lw setlinewidth stroke grestore
+	d2 neg d2 rmoveto
+}def
+
+/qwx{
+	/value exch def
+	%currentpoint
+	d2 d2 neg rmoveto
+	/s value value abs div def
+	0 value dim mul r s mul add neg rlineto
+	0 value dim mul r s mul add rmoveto
+	d2 neg d2 rmoveto
+}def
+
+/wire{
+	/value exch def
+	0 d2 neg rmoveto
+	value dim mul 0 rlineto
+	value dim mul neg d2 rmoveto
+}def
+
+/measure{
+	/value exch def
+	0 d4 neg rmoveto
+	0 d2 neg rlineto
+	d4 2 div 0 rmoveto
+	0 d2 rlineto
+
+	d4 2 div d2 neg rmoveto
+	gsave
+	0 d4 4 div rmoveto
+	/Times-Italic fs selectfont
+  value show	
+	grestore
+
+	d4 neg d2 rmoveto	%from text
+	d4 neg d4 rmoveto %from lines
+}def
+
+/back{
+	currentpoint
+	dim neg add
+	exch pop
+	sc
+	exch
+	moveto
+	currentpoint
+}def
+
+/n{
+	0 qw
+}def
+
+/qw{
+	/value exch def
+	value 1 add dim mul 0 rmoveto
+}def
+
+/ket{
+	/value exch def
+	currentpoint	
+	0 d4 neg rmoveto
+	0 d2 neg rlineto
+	
+	d4 2 div 0 rmoveto
+
+	gsave
+	d4 6 div d4 4 div rmoveto
+	/Times-Italic fs selectfont
+  value show
+	grestore
+
+	d2 d2 rmoveto
+	
+	d4 2 div d4 neg rlineto
+	d4 2 div neg d4 neg rlineto
+
+	moveto
+}def
+
+newpath
