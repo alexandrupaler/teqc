@@ -35,7 +35,7 @@ OUTPUTCONN = connectpins
 FILESCONN = fileformats/geomfilewriter.o fileformats/iofilereader.o faildistillations.o numberandcoordinate.o geometry.o connectpins.o connectpinsmain.o
 
 
-all:: process convert boxworld additional faild connectpins chp
+all:: process convert boxworld additional faild connectpins
 
 test::
 	make -C geomtest
