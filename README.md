@@ -3,6 +3,8 @@
 Software for generating a geometric description corresponding to 
 a TQEC circuit.
 
+Please reference http://arxiv.org/abs/1604.08621 if you use the software.
+
 To use it:
 
 1) make
