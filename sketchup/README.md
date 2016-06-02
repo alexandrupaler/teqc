@@ -27,4 +27,5 @@
 === Notes
 *********************
 
-Tested with Sketchup 2015 Pro
+Tested with Sketchup 2015 Pro.
+Should work with 2016 Pro, too.
