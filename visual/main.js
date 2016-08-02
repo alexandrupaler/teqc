@@ -30,7 +30,6 @@ function add_vertex(x,y,z, material) {
 function add_edge(x1,y1,z1, x2,y2,z2, material) {
     var length = Math.pow((x2-x1), 2) + Math.pow((y2-y1), 2) + Math.pow((z2-z1), 2)
     length = Math.sqrt(length);
-   // var radius=.06;
     var radius = .2;
     var geometry = new THREE.CylinderGeometry( radius, radius, length, 3);
 
@@ -68,87 +67,59 @@ function makePins(boxparam, bigcube)
 function makeBoxes(sched)
 {
 	
-	for (var i=0; i<sched.coords.length; i++)
-  {
+    for (var i=0; i<sched.coords.length; i++)
+    {
 		var boxparam = sched.coords[i];
 		var geometry = new THREE.BoxGeometry(sched.types[boxparam[0]][0], sched.types[boxparam[0]][1], sched.types[boxparam[0]][2]);
 		var cube = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial({
-        wireframe: true,
-        color: 'blue'
-      }) );
+            wireframe: true,
+            color: 'blue'
+        }) );
 
 		scene.add( cube );
 
 		cube.position.x = boxparam[2] + geometry.parameters.width/2;
 		cube.position.y = boxparam[3] + geometry.parameters.height/2;
 		cube.position.z = boxparam[4] + geometry.parameters.depth/2;
-
-		//makePins(boxparam);
 	}
 }
 
-function makeGeometry(graphobject) {
-
-		//this is going to explode!
-
-
-		//make injections
-		for (var i=0; i<graphobject.inj.length; i++)
+function makeGeometry(graphobject) 
+{
+	//make injections
+	for (var i=0; i<graphobject.inj.length; i++)
     {
-				var n=graphobject.nodes[graph.inj[i] - 1];
+		var n=graphobject.nodes[graph.inj[i] - 1];
         add_vertex(n[1], n[2], n[3], material3);
 
-				//if(isNaN(graphobject.names[i][1]))
-				{
-				var s1= makeTextSprite2(graphobject.names[i][1]);
+		var s1= makeTextSprite2(graphobject.names[i][1]);
 
-				s1.position.x = n[1];
-				s1.position.y = n[2];
-				s1.position.z = n[3] + 1;
-				scene.add(s1);
-}
-		}
-
-		//make normal vertices - does not work - fuck
-/*    for (var i=0; i<graph.nodes.length; i++)
-    {
-				var skip = false;
-				for (var j=0; j<graph.inj.length; j++)
-    		{
-					if(graph.inj[j] == graph.nodes[i][0])//primul element este numele
-					{
-						skip = true;
-						break;
-					}
-						
-				}
-				if(skip) break;
-
-        var n=graph.nodes[i];
-        add_vertex(n[1], n[2], n[3], material1);
+		s1.position.x = n[1];
+		s1.position.y = n[2];
+		s1.position.z = n[3] + 1;
+		scene.add(s1);
     }
-*/
 
-		//make edges
+    //make edges
     for (var i=0; i<graphobject.edges.length; i++)
     {
+        /*graph2js is not perfect...check*/
+        if(graphobject.edges[i].length == 0)
+            continue;
+
         var a=graphobject.nodes[graphobject.edges[i][0] - 1];
         var b=graphobject.nodes[graphobject.edges[i][1] - 1];
 
-				//var a=graph.edges[i][0];
-        //var b=graph.edges[i][1];
+		var materialx = material1;
+		otherside = 0;
+		for(var j=1; j<4; j++)
+			if(a[j]%2 != 0)
+				otherside++;
 
-				var materialx = material1;
-				otherside = 0;
-				for(var j=1; j<4; j++)
-					if(a[j]%2 != 0)
-						otherside++;
+		if(otherside >= 2)
+			materialx = material2;
 
-				if(otherside >= 2)
-					materialx = material2;
-
-				//if(otherside >= 2)
-	        add_edge2(a[1], a[2], a[3], b[1], b[2], b[3], materialx);
+        add_edge2(a[1], a[2], a[3], b[1], b[2], b[3], materialx);
     }
 }
 
@@ -161,14 +132,14 @@ function init() {
 
 
     // Renderer
-		renderer = Detector.webgl? new THREE.WebGLRenderer({preserveDrawingBuffer: true}): new THREE.CanvasRenderer();
+	renderer = Detector.webgl? new THREE.WebGLRenderer({preserveDrawingBuffer: true}): new THREE.CanvasRenderer();
     //renderer = new THREE.WebGLRenderer( { antialias: true });
     renderer.setSize(WIDTH, HEIGHT-20);
     renderer.setClearColor( 0xffffff, 1 );
     $container.appendChild(renderer.domElement);
     scene = new THREE.Scene();
 
-// Center the camera
+    // Center the camera
     var sx=0; var sy=0; var sz=0;
     for (var i=0; i<graph.nodes.length; ++i)
     {
@@ -200,18 +171,9 @@ function init() {
     scene.add(pointLight);
 
     // Materials
-    //material1 = new THREE.MeshLambertMaterial({color: "red"});
     material1 = new THREE.LineBasicMaterial({ color: 0xFF0000, linewidth: 2, transparent: true, opacity: 1});
-
-    //material2 = new THREE.MeshLambertMaterial({color: "blue"});
     material2 = new THREE.LineBasicMaterial({ color: 0x0000FF, linewidth: 2, transparent: true, opacity: 1 });
-
     material3 = new THREE.MeshLambertMaterial({color: "green"});
-
-    //material2.opacity=0;
-    //material2.transparent=true;
-
-    
 
     // Add controls
     controls = new THREE.TrackballControls(camera, $container);
@@ -227,11 +189,11 @@ function init() {
 	controls.dynamicDampingFactor = 0.3;
 		
 		
-		makeBoxes(boxes0);
-		makeBoxes(boxes1);
-		makeBoxes(boxes2);
+	makeBoxes(boxes0);
+	makeBoxes(boxes1);
+	makeBoxes(boxes2);
   	makeGeometry(graph2);//connects pins to boxes
-		makeGeometry(graph);//the circuit
+	makeGeometry(graph);//the circuit
 
     // Render
     $(window).load(function(){
@@ -287,4 +249,3 @@ function add_edge2(x1, y1, z1, x2, y2, z2, material) {
     scene.add(line);
     edges.push(line);
 }
-
