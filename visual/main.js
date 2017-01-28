@@ -1,5 +1,5 @@
 // IE9
-if(typeof console === "undefined") { var console = { log: function (logMsg) { } }; }
+if(typeof console === "undefined") { var console = { log: function (logMsg) { } };  }
 
 var camera, controls, scene, renderer, material;
 var spheregeometry;
