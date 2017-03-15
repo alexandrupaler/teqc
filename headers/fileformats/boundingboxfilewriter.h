@@ -23,7 +23,7 @@ public:
 	 * @param file the file handler already opened with "w"
 	 * @param boundingbox a coordinate that stores the maximum coordinates of the circuit geometry
 	 */
-	void writeBoundingBoxFile(FILE* file, coordinate& boundingbox);
+	void writeBoundingBoxFile(FILE* file, convertcoordinate& boundingbox);
 };
 
 #endif /* BOUNDINGBOXFILEWRITER_H_ */

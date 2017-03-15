@@ -21,13 +21,37 @@ class geometry{
 public:
 
 	/**
-	 * Adds a segment. Does not check if the indices are already existing.
-	 * If the segment existed, it is not inserted again in the
-	 * segment collection.
+	 * Remove a segment. Similar to addSegment.
 	 * @param idx1
 	 * @param idx2
+	 * @return if segment was removed
 	 */
-	void addSegment(int idx1, int idx2);
+	bool removeSegment(int idx1, int idx2);
+
+	/**
+	 * Utility function. Pair is sorted.
+	 * @param idx1
+	 * @param idx2
+	 * @return
+	 */
+	pair<long, long> computePair(int idx1, int idx2);
+
+	/**
+	 * Utility function. Generate string from pair. Used as key in segMap.
+	 * @param p
+	 * @return
+	 */
+	string computeKey(pair<long, long>& p);
+
+	/**
+	 * Adds a segment. Does not check if the indices are already existing.
+	 * If the segment existed, it is not inserted again in the
+	 * segment collection. If the indices are equal, segment is not added.
+	 * @param idx1
+	 * @param idx2
+	 * @return if segment was added
+	 */
+	bool addSegment(int idx1, int idx2);
 
 	/**
 	 * Adds the coordinate of a vertex, and returns its index from the
@@ -36,7 +60,7 @@ public:
 	 * @param c the coordinate to insert
 	 * @return index of the coordinate in the vertex collection
 	 */
-	int addCoordinate(coordinate& c);
+	int addCoordinate(convertcoordinate& c);
 
 	/**
 	 * Adds a vertex coordinate and marks the vertex as io.
@@ -44,19 +68,25 @@ public:
 	 * @param isInit - not used, to be removed?
 	 * @return
 	 */
-	int addIOPoint(coordinate& ioc, bool isInit);
+	int addIOPoint(convertcoordinate& ioc, bool isInit);
 
 	/**
 	 * Updates the bounding box member after considering the input coordinate.
 	 * @param c the coordinate
 	 */
-	void updateBoundingBox(coordinate& c);
+	void updateBoundingBox(convertcoordinate& c);
+
+	/**
+	 * Clear everything
+	 */
+	void reset();
+
 
 public:
 	/**
 	 * The collection of vertex coordinates.
 	 */
-	vector<coordinate> coords;
+	vector<convertcoordinate> coords;
 
 	/**
 	 * The collection of coordinate index pairs representing segments.
@@ -84,7 +114,7 @@ public:
 	/**
 	 * The bounding box of the generated geometry
 	 */
-	coordinate boundingbox;
+	convertcoordinate boundingbox;
 };
 
 

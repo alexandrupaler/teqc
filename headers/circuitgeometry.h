@@ -1,6 +1,7 @@
 #ifndef CIRCUITGEOMETRY_H_
 #define CIRCUITGEOMETRY_H_
 
+#include "recycling/causalgraph.h"
 #include "geometry.h"
 #include "circuitmatrix.h"
 #include "gatenumbers.h"
@@ -22,46 +23,52 @@ public:
 	geometry simplegeom;
 
 	numberandcoordinate allpins;
+    bool inputConnectionDown;
+    vector<vector<long > > lastIndex;
+    //use a lastindex for duals
+    vector<long> lastDualIndices;
 
-	//legacy
-	bool inputConnectionDown;
-
-	/**
-	 * vector of 4 indices
-	 */
-	vector<long> lastindex;
+    bool useBridge;
 
 public:
+    circuitgeometry()
+    {
+        inputConnectionDown = false;
+        useBridge = false;
+    }
 
-	/**
-	 * Constructor.
-	 */
-	circuitgeometry()
-	{
-		inputConnectionDown = false;
-		lastindex = vector<long>(4, -100);
-	}
+    void liSetAxisValueAndAddSegment(int wire, int indexPos, int axis, int value);
+    void liAddAxisOffsetAndAddSegment(int wire, int indexPos, int axis, int offset);
+    void liAddAxisOffset(int wire, int indexPos, int axis, int offset);
+    void liInitCurrPrimal(int i, int j);
+    void liInitCurrDual(int i, int j);
+    void liCopyCurrsOverPrevs(int wire);
+    void liAddPinPair(int wire, int ioIndex, int type);
 
-	void liSetAxisValueAndAddSegment(int indexPos, int axis, int value);
-	void liAddAxisOffsetAndAddSegment(int indexPos, int axis, int offset);
-	void liAddAxisOffset(int indexPos, int axis, int offset);
-	void liInitCurrPrimal(int i, int j);
-	void liInitCurrDual(int i, int j, circuitmatrix& circ);
-	void liCopyCurrsOverPrevs();
+//    void addDual(circuitmatrix & circ, int ctrli, int ctrlj);
+    void addDual(causalgraph& causal, int opid);
 
-	void makeGeometryFromCircuit(circuitmatrix& paramCirc);
-	void addDual(circuitmatrix& circ, int ctrli, int ctrlj);
+    void addPinPair(int ioIndex, circuitmatrix & paramCirc, int i, int j);
+    int getDepthShift();
+    int getPrevHalfDelta(int direction);
+    int getInputCoordAxis();
+    int liAddIOPoint2(int wire);
 
-	void addInputPins(int ioIndex, circuitmatrix& paramCirc, int i, int j);
+//    void makeGeometryFromCircuit(circuitmatrix & paramCirc);
+//    void makeGeometryFromCircuit(causalgraph& causal, int minlevel, int maxlevel);
+//    void makeGeometryFromCircuit(causalgraph& causal, inputLevelInfo& mininfo, inputLevelInfo& maxinfo);
+    void makeGeometryFromCircuit(causalgraph& causal, bfsState& state);
 
-	int getDepthShift();
 
-	int getInputCoordAxis();
+
+
+    void liDualAddAxisOffsetAndAddSegment(int indexPos, int axis, int offset);
+    void liDualAddAxisOffset(int indexPos, int axis, int offset);
 
 private:
-	int liInsertIOPointUsingCurr1(bool isInit);
-	void liConnectPrevsWithCurrs();
-	void liConnectIOPointToCurrs(int& ioIndex, bool connectionDown);
+	int liInsertIOPointUsingCurr1(int wire, bool isInit);
+	void liConnectPrevsWithCurrs(int wire);
+	void liConnectIOPointToCurrs(int wire, int& ioIndex, bool connectionDown);
 };
 
 

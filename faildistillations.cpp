@@ -8,24 +8,26 @@
 
 using namespace std;
 
-faildistillations::faildistillations(char* circIoFile, char* boxPinsFile)
+void faildistillations::selectDistillationForCircuitInput (const char* circIoFile,
+		const char* allPinsFile, double afail, double yfail, vector<pinpair>& toconn)
 {
 	FILE* file = fopen(circIoFile, "r");
 	iofilereader ior;
-	circIOs = ior.readIOFile(file);
-	//nandc.read(circIoFile);//read the inputs
+	numberandcoordinate circIOs = ior.readIOFile(file);
 	fclose(file);
 
-	file = fopen(boxPinsFile, "r");
-	boxIOs = ior.readIOFile(file);
+	file = fopen(allPinsFile, "r");
+	numberandcoordinate boxIOs = ior.readIOFile(file);
 	fclose(file);
+
+	selectDistillationForCircuitInput(circIOs, boxIOs, afail, yfail, toconn);
 }
 
 /* Probability of Failures: 0 - does not fail; 1 - always fail
  * returns true if diced prob over parameter
  * false if not
  */
-double faildistillations::randomCheckThreshold(double& prob)
+bool faildistillations::randomCheckThreshold(double& prob)
 {
 	double randomFail = drand48();
 	//printf("p=%lf\n", randomFail);
@@ -40,7 +42,7 @@ double faildistillations::randomCheckThreshold(double& prob)
  * value less than nandc.size() if an ORIGINAL distillation box was used
  * value greater than nandc.size() if an ADDITIONAL distillation box was used
  */
-int faildistillations::decide(double prob, int origposition, int lastPosition)
+int faildistillations::decide(double prob, numberandcoordinate& boxIOs, int origposition, int lastPosition)
 {
 	//what type does the original distillation box have?
 	int type = boxIOs.getIOType(origposition);
@@ -73,7 +75,7 @@ int faildistillations::decide(double prob, int origposition, int lastPosition)
 			}
 			else
 			{
-				failedDistillations.push_back(i);//save the failed distillation box indices into a list
+//				failedDistillations.push_back(i);//save the failed distillation box indices into a list
 			}
 		}
 	}
@@ -89,13 +91,13 @@ int faildistillations::decide(double prob, int origposition, int lastPosition)
  * 	This method is used in order to generate connections which do not generate intersecting geometries (see connectpins)
  */
 
-vector<pair<int, int> > faildistillations::computePinIndexPairs(int boxIndex)
+vector<pair<int, int> > faildistillations::computePinIndexPairs(numberandcoordinate& boxIOs, int boxIndex)
 {
 	vector<pair<int, int> > ret;
 
 	bool horizontalAPins = false;
-	int firstPinOffset = 0;
-	int secondPinOffset = 1;
+//	int firstPinOffset = 0;
+//	int secondPinOffset = 1;
 
 	if(boxIOs.getIOType(boxIndex) == ATYPE)
 	{
@@ -118,42 +120,44 @@ vector<pair<int, int> > faildistillations::computePinIndexPairs(int boxIndex)
 	return ret;
 }
 
-int faildistillations::storeConnectEntry(int IOIndex, int boxIndex)
+int faildistillations::storeConnectEntry(numberandcoordinate& circIOs, int IOIndex, numberandcoordinate& boxIOs, int boxIndex, vector<pinpair>& toconn)
 {
-	int type = circIOs.getIOType(IOIndex);
+	printf("conn io%d box%d \n", IOIndex, boxIndex);
+
+//	int type = circIOs.getIOType(IOIndex);
 
 	if(boxIndex == NOBOXESAVAIL)
 	{
-		return nonFailedPinPairCoords.size();//nothing changed, nothing added
+		return toconn.size();//nothing changed, nothing added
 	}
 
-	vector<pair<int, int> > pinIndices = computePinIndexPairs(boxIndex);
+	vector<pair<int, int> > pinIndices = computePinIndexPairs(boxIOs, boxIndex);
 
 	for (int i=0; i<2; i++)
 	{
 		pinpair pair;
 
-		pair.setCoordinate(0, circIOs.inputList[IOIndex].getCoordinate(pinIndices[i].first));
+		pair.setPinDetail(DESTPIN, circIOs.inputList[IOIndex].getPinDetail(pinIndices[i].first));
 
 		//if A pair pins are connected 0+1, 1+0
 		//otherwise 0+0, 1+1
 		//int boxpin = ((type == ATYPE && horizontalAPins) ? 1 - i : i);
-		pair.setCoordinate(1, boxIOs.inputList[boxIndex].getCoordinate(pinIndices[i].second));
+		pair.setPinDetail(SOURCEPIN, boxIOs.inputList[boxIndex].getPinDetail(pinIndices[i].second));
 
-		nonFailedPinPairCoords.push_back(pair);
+		toconn.push_back(pair);
 	}
 
-	return nonFailedPinPairCoords.size();
+	return toconn.size();
 }
 
-int faildistillations::decideAndStore(double failprob, int IOIndex, int& lastpos)
+int faildistillations::decideAndStore(double failprob, numberandcoordinate& circIOs, int IOIndex, numberandcoordinate& boxIOs, int& lastpos, vector<pinpair>& toconn)
 {
 	int currlastpos = NOBOXESAVAIL;
 
-	currlastpos = decide(failprob, IOIndex, lastpos);
+	currlastpos = decide(failprob, boxIOs, IOIndex, lastpos);
 
 	if (currlastpos != NOBOXESAVAIL)
-		storeConnectEntry(IOIndex, currlastpos);
+		storeConnectEntry(circIOs, IOIndex, boxIOs, currlastpos, toconn);
 
 	//if not the original distillation box, but an additional one
 	//if (currlastpos != transformIOIndexToDistIndex(IOIndex))
@@ -169,7 +173,8 @@ int faildistillations::decideAndStore(double failprob, int IOIndex, int& lastpos
  * because the additional A distillation boxes are on the rhs of the circuit, the iteration goes from right to left
  * once an input of corresponding type was found, the decideAndStore method is called
  */
-void faildistillations::selectDistillationForCircuitInput(double afail, double yfail)
+void faildistillations::selectDistillationForCircuitInput(numberandcoordinate& circIOs,
+		numberandcoordinate& boxIOs, double afail, double yfail, vector<pinpair>& toconn)
 {
 	//lastpos stores the index of the last used additional distillation box
 	//-2 because in decide the loop begins with +2
@@ -180,7 +185,7 @@ void faildistillations::selectDistillationForCircuitInput(double afail, double y
 		if(circIOs.getIOType(nrInput) != ATYPE)
 			continue;
 
-		decideAndStore(afail, nrInput, lastAPos);
+		decideAndStore(afail, circIOs, nrInput, boxIOs, lastAPos, toconn);
 	}
 
 	int lastYPos = (circIOs.size() - 1);// * 2;
@@ -190,14 +195,14 @@ void faildistillations::selectDistillationForCircuitInput(double afail, double y
 		if(circIOs.getIOType(nrInput) != YTYPE)
 			continue;
 
-		decideAndStore(yfail, nrInput, lastYPos);
+		decideAndStore(yfail, circIOs, nrInput, boxIOs, lastYPos, toconn);
 	}
 }
 
-void faildistillations::writeFailedDistillations()
-{
-	/*not implemented*/
-}
+//void faildistillations::writeFailedDistillations()
+//{
+//	/*not implemented*/
+//}
 
 faildistillations::faildistillations()
 {

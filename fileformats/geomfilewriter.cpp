@@ -28,31 +28,31 @@ string geomfilewriter::getGeomFileName(const char* basisfilename)
  *	-# the inputs and the outputs have names, but the writer uses their indices for this purpose
  *	each line is of the form "index,name"
  */
-void geomfilewriter::writeGeomFile(FILE* f, vector<long>& io, vector<pair<long, long> >& segs, vector<coordinate>& coords)
+void geomfilewriter::writeGeomFile(FILE* f, vector<long>& io, vector<pair<long, long> >& segs, vector<convertcoordinate>& coords)
 {
 	fprintf(f, "%d\n", (int)io.size());
 	fprintf(f, "%d\n", (int)segs.size());
 	fprintf(f, "%d\n", (int)coords.size());
 
-	for(int i=0; i<io.size(); i++)
+	for(size_t i=0; i < io.size(); i++)
 	{
-		if(i!=0)
+		if(i != 0)
 			fprintf(f, ",");
 		fprintf(f, "%ld", io.at(i) + 1);
 	}
 	fprintf(f, "\n");
 
-	for(int i=0; i<segs.size(); i++)
+	for(size_t i=0; i < segs.size(); i++)
 	{
 		fprintf(f, "%ld,%ld\n", segs.at(i).first + 1, segs.at(i).second + 1);
 	}
 
-	for(int i=0; i<coords.size(); i++)
+	for(size_t i=0; i < coords.size(); i++)
 	{
-		fprintf(f, "%d,%ld,%ld,%ld\n", i + 1, coords.at(i)[0], coords.at(i)[1], coords.at(i)[2]);
+		fprintf(f, "%lu,%ld,%ld,%ld\n", i + 1, coords.at(i)[0], coords.at(i)[1], coords.at(i)[2]);
 	}
 
-	for(int i=0; i<io.size(); i++)
+	for(size_t i=0; i < io.size(); i++)
 	{
 		fprintf(f, "%ld,%ld\n", io.at(i) + 1, io.at(i) + 1);
 	}

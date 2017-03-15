@@ -12,7 +12,7 @@ using namespace std;
 class iofilewriter{
 public:
 	static string getIOFileName(const char* basisfilename);
-	void writeIOFile(FILE* file, vector<inputpin>& allpins);
+	void writeIOFile(FILE* file, vector<pinpair>& allpins);
 };
 
 

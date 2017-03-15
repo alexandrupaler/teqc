@@ -24,10 +24,10 @@ void qcircfilewriter::writeQCircFile(FILE* pFile, circuitmatrix& circ)
 	int inQubit = 0;
 	int outQubit = 0;
 
-	for(int i=0; i<circ.size(); i++)
+	for(size_t i=0; i<circ.size(); i++)
 	{
 		bool wasmeasure = false;
-		for(int j=0; j<circ.at(i).size(); j++)
+		for(size_t j=0; j < circ.at(i).size(); j++)
 		{
 			int cmd = circ.at(i).at(j);
 			if(cnotcounter::isCnot(cmd))
@@ -129,7 +129,7 @@ void qcircfilewriter::writeQCircFile(FILE* pFile, circuitmatrix& circ)
 			}
 
 //			if((cmd <6 || cmd>9) && j==circ.at(i).size()-1)
-			if((cmd==0) && j==circ.at(i).size()-1)
+			if((cmd == 0) && j == circ.at(i).size() - 1)
 				fprintf(pFile, "&\\rstick{\\ket{out_%d}}", outQubit++);
 
 			fprintf(pFile, "&");

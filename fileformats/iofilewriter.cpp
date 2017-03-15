@@ -13,9 +13,9 @@ string iofilewriter::getIOFileName(const char* basisfilename)
 }
 
 //void iofilewriter::writeIOFile(FILE* file, vector<vector<int> >& allpins, map<int, int>& inputs)
-void iofilewriter::writeIOFile(FILE* file, vector<inputpin>& allpins)
+void iofilewriter::writeIOFile(FILE* file, vector<pinpair>& allpins)
 {
-	for(int i=0; i<allpins.size(); i++)
+	for(size_t i=0; i < allpins.size(); i++)
 	{
 		int type = allpins.at(i)[TYPE];
 		int ioIndex = allpins.at(i)[INJNR] + 1;

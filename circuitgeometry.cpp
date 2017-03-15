@@ -2,6 +2,7 @@
 
 #include "circuitgeometry.h"
 #include "cnotcounter.h"
+#include <algorithm>
 
 int circuitgeometry::getInputCoordAxis()
 {
@@ -9,59 +10,54 @@ int circuitgeometry::getInputCoordAxis()
 	return where;
 }
 
-void circuitgeometry::addInputPins(int ioIndex, circuitmatrix& paramCirc, int i, int j)
+void circuitgeometry::liAddPinPair(int wire, int ioIndex, int type)
 {
-	inputpin pins;//8 ints with value -100
-	int type = (paramCirc.at(i).at(j) == AA ? ATYPE : YTYPE);
+	pinpair pins;//8 ints with value -100
 
 	pins[TYPE] = type;
 	pins[INJNR] = ioIndex;
 
-	for (int si = 0; si < 2; si++)
-	{
-		coordinate pinc(simplegeom.coords[ioIndex]);
+	pindetails detail1;
+	detail1.coord = simplegeom.coords[lastIndex[wire][CURR1]];
 
-		int where = getInputCoordAxis();
+	pindetails detail2;
+	detail2.coord = simplegeom.coords[lastIndex[wire][CURR2]];
 
-		pinc[where] += (DELTA / 2) - DELTA * (si % 2);
-
-		//pins.insert(pins.begin() + OFFSETNONCOORD, pinc.begin(), pinc.end()); //coord of pin
-		//pins.insert(pins.end(), pinc.begin(), pinc.end()); //coord of pin
-		pins.setCoordinate(si, pinc);
-	}
+	pins.setPinDetail(0, detail1);
+	pins.setPinDetail(1, detail2);
 
 	allpins.addEntry(pins);
 }
 
-void circuitgeometry::liConnectPrevsWithCurrs()
+void circuitgeometry::liConnectPrevsWithCurrs(int wire)
 {
 	//add segments to the left
 	for (int si = 0; si < 2; si++)
 	{
-		simplegeom.addSegment(lastindex[PREV1 + si], lastindex[CURR1 + si]);
+		simplegeom.addSegment(lastIndex[wire][PREV1 + si], lastIndex[wire][CURR1 + si]);
 	}
 }
 
-void circuitgeometry::liConnectIOPointToCurrs(int& ioIndex, bool connectionDown)
+void circuitgeometry::liConnectIOPointToCurrs(int wire, int& ioIndex, bool connectionDown)
 {
 	if (connectionDown)
 	{
 		//add segment down
-		simplegeom.addSegment(lastindex[CURR1], lastindex[CURR2]);
+		simplegeom.addSegment(lastIndex[wire][CURR1], lastIndex[wire][CURR2]);
 
 		//create a point after the ioIndex
-		coordinate nioc(simplegeom.coords[ioIndex]);
+		convertcoordinate nioc(simplegeom.coords[ioIndex]);
 		nioc[CIRCUITDEPTH] += DELTA / 2;
 		int nindex = simplegeom.addCoordinate(nioc);
 
 		//add segment to the right, between curr1 and ioIndex
-		simplegeom.addSegment(lastindex[CURR1], ioIndex);
+		simplegeom.addSegment(lastIndex[wire][CURR1], ioIndex);
 
 		//add segment between ioIndex and point following it
 		simplegeom.addSegment(ioIndex, nindex);
 
 		//update CURR1
-		lastindex[CURR1] = nindex;
+		lastIndex[wire][CURR1] = nindex;
 		//at this point CURR1 and CURR2 are not parallel anymore
 		//CURR1 has an offset of 2 on the circuitdepth axis
 	}
@@ -70,15 +66,15 @@ void circuitgeometry::liConnectIOPointToCurrs(int& ioIndex, bool connectionDown)
 		//add segments between the CURR points and the ioIndex
 		for (int si = 0; si < 2; si++)
 		{
-			simplegeom.addSegment(ioIndex, lastindex[CURR1 + si]);
+			simplegeom.addSegment(ioIndex, lastIndex[wire][CURR1 + si]);
 		}
 	}
 }
 
-int circuitgeometry::liInsertIOPointUsingCurr1(bool isInit)
+int circuitgeometry::liInsertIOPointUsingCurr1(int wire, bool isInit)
 {
 	//the io will be with one layer up
-	coordinate ioc(simplegeom.coords.at(lastindex[CURR1]));
+	convertcoordinate ioc(simplegeom.coords.at(lastIndex[wire][CURR1]));
 	//ioc.assign(coords.at(lastindex[CURR1]).begin(), coords.at(lastindex[CURR1]).end());
 
 	int where = isInit ? getInputCoordAxis() : CIRCUITHEIGHT;
@@ -89,261 +85,220 @@ int circuitgeometry::liInsertIOPointUsingCurr1(bool isInit)
 	return ioIndex;
 }
 
-void circuitgeometry::liCopyCurrsOverPrevs()
+void circuitgeometry::liCopyCurrsOverPrevs(int wire)
 {
 	//move the curr indices to be prev indices
 	for (int si = 0; si < 2; si++)
 	{
-		lastindex[PREV1 + si] = lastindex[CURR1 + si]; //will be used at the later point at indices 0,1
+		lastIndex[wire][PREV1 + si] = lastIndex[wire][CURR1 + si]; //will be used at the later point at indices 0,1
 	}
 }
 
-void circuitgeometry::makeGeometryFromCircuit(circuitmatrix& paramCirc)
+int circuitgeometry::liAddIOPoint2(int wire)
 {
-	//neccesary?
-	bool circuitHasInjections = paramCirc.hasInjections();
-
-	//here the primal space is constructed
-
-	for(int i=0; i<paramCirc.size(); i++)
+    convertcoordinate ioc;
+    for(int i=0; i<3; i++)
 	{
-		for(int j=0; j<paramCirc.at(i).size(); j++)
+		ioc[i] = (simplegeom.coords[lastIndex[wire][CURR1]][i] + simplegeom.coords[lastIndex[wire][CURR2]][i])/2;
+		if(ioc[i] != simplegeom.coords[lastIndex[wire][CURR1]][i])
 		{
-			bool isInit = paramCirc.isInitialisation(i, j);
-			bool isMeasure = paramCirc.isMeasurement(i, j);
-			bool isControl = cnotcounter::isControl(paramCirc.at(i).at(j));
-
-			//initialise the CURR points
-			//and update them according to their meaning
-			if(isControl || isInit || isMeasure)
+			//daca se afla la mijlocul distantei intre CURR1 si CURR2
+			//coordonatele defectelor sunt in unitati de celula
+			//coordonatele io sunt in qubits
+			//deci celulele primare au coordonate toate impare
+			if(ioc[i] % 2 == 1)
 			{
-				liInitCurrPrimal(i, j);
-
-				if(isMeasure)//21.sept.2015//practic da inapoi
-				{
-					simplegeom.coords[lastindex[CURR1]][CIRCUITDEPTH] -= DELTA;
-					simplegeom.coords[lastindex[CURR2]][CIRCUITDEPTH] -= DELTA;
-				}
-
-				if(isInit)//01.oct.2015//practic da inainte
-				{
-					simplegeom.coords[lastindex[CURR1]][CIRCUITDEPTH] += DELTA;
-					simplegeom.coords[lastindex[CURR2]][CIRCUITDEPTH] += DELTA;
-				}
-
-				if(circuitHasInjections && paramCirc.isInput(i, j))
-				{
-					simplegeom.coords[lastindex[CURR1]][CIRCUITDEPTH] -= 25 * DELTA;
-					simplegeom.coords[lastindex[CURR2]][CIRCUITDEPTH] -= 25 * DELTA;
-				}
+				//daca e coordonata de celula
+				ioc[i]--;//par e coordonata de qubit
 			}
+		}
+	}
+    int ioIndex = simplegeom.addIOPoint(ioc, true);
+    return ioIndex;
+}
 
-			if(isControl)
+void circuitgeometry::makeGeometryFromCircuit(causalgraph& causal, bfsState& state)
+{
+//	TODO: Is this constantly needed?
+	lastIndex.resize(state.nrLines);
+	for(size_t i=0; i<lastIndex.size(); i++)
+	{
+		lastIndex[i].resize(4);
+	}
+
+	lastDualIndices.resize(4);
+
+	for(vector<int>::iterator it = state.toDraw.begin(); it != state.toDraw.end(); it++)
+	{
+		bool isInit = causal.circuit[*it].isInitialisation();
+		bool isMeasure = causal.circuit[*it].isMeasurement();
+		bool isControl = causal.circuit[*it].isGate();//in mod normal doar CNOT poate fi din cauza de ICM. TODO: verifica
+
+		int level = causal.circuit[*it].level;
+
+		int wire = causal.circuit[*it].wires[0];
+
+		//initialise the CURR points
+		//and update them according to their meaning
+		if(isControl || isInit || isMeasure)
+		{
+			liInitCurrPrimal(wire, level);
+
+			if(isControl)//21.sept.2015//practic da inapoi
 			{
+				if(!useBridge)
+				{
+					liAddAxisOffset(wire, CURR1, CIRCUITDEPTH, -DELTA);
+					liAddAxisOffset(wire, CURR2, CIRCUITDEPTH, -DELTA);
+				}
 				//add segments to the left
-				liConnectPrevsWithCurrs();
+				liConnectPrevsWithCurrs(wire);
 
-				//add first segment down
-				simplegeom.addSegment(lastindex[CURR1], lastindex[CURR2]);
+				//first down
+				simplegeom.addSegment(lastIndex[wire][CURR1], lastIndex[wire][CURR2]);
 
-				liAddAxisOffset(CURR1, CIRCUITDEPTH, DELTA);
-				liAddAxisOffset(CURR2, CIRCUITDEPTH, DELTA);
-
-				//add second segment down
-				simplegeom.addSegment(lastindex[CURR1], lastindex[CURR2]);
-
-//				//add segments to the left
-//				for(int si=0; si<2; si++)
-//				{
-//					lastindex[PREV1 + si] = lastindex[CURR1 + si]; //will be used at the later point at indices 0,1
-//				}
-//
-//				//necessary?
-//				//if(!bridgecnotprimals)
-//				{
-//					addDepthOffsetLastIndices(PREV1, DELTA, lastindex);
-//					addDepthOffsetLastIndices(PREV2, DELTA, lastindex);
-//					addSegment(lastindex[PREV1], lastindex[PREV2]);
-//				}
-			}
-
-			if(isInit)
-			{
-				int ioIndex = liInsertIOPointUsingCurr1(true);
-
-				liConnectIOPointToCurrs(ioIndex, inputConnectionDown);
-
-				//save the input pins to a list
-				if(paramCirc.at(i).at(j) == AA || paramCirc.at(i).at(j) == YY)
+				if(!useBridge)
 				{
-					addInputPins(ioIndex, paramCirc, i, j);
+					liAddAxisOffset(wire, CURR1, CIRCUITDEPTH, DELTA);
+					liAddAxisOffset(wire, CURR2, CIRCUITDEPTH, DELTA);
+
+					//second down - non-bridge?
+					simplegeom.addSegment(lastIndex[wire][CURR1], lastIndex[wire][CURR2]);
 				}
 			}
 
 			if(isMeasure)
 			{
-				liConnectPrevsWithCurrs();
+				liConnectPrevsWithCurrs(wire);
 
 				//add the io measurement point
-				int ioIndex = liInsertIOPointUsingCurr1(false);
-
-				liConnectIOPointToCurrs(ioIndex, false);
+				int ioIndex = liInsertIOPointUsingCurr1(wire, false);
+				liConnectIOPointToCurrs(wire, ioIndex, false);
 			}
 
-			//move the curr indices to be prev indices
-			liCopyCurrsOverPrevs();
-		}
-	}
-
-	//the dual space is constructed
-	for(int i=0; i<paramCirc.size(); i++)
-	{
-		for(int j=0; j<paramCirc.at(i).size(); j++)
-		{
-			if(cnotcounter::isControl(paramCirc.at(i).at(j)))
+			//if(circuitHasInjections && paramCirc.isInput(wire, level))
+			if(causal.circuit[*it].isInput())
 			{
-				//printf("%d --> %d\n", i, comps.at(comps.size()-1));
-				addDual(paramCirc, i, j);
+				liAddAxisOffset(wire, CURR1, CIRCUITDEPTH, -25*DELTA);
+				liAddAxisOffset(wire, CURR2, CIRCUITDEPTH, -25*DELTA);
 			}
+
+			if(isInit)
+			{
+				simplegeom.addSegment(lastIndex[wire][CURR1], lastIndex[wire][CURR2]);
+				liAddAxisOffset(wire, CURR2, CIRCUITDEPTH, DELTA);
+				liAddAxisOffset(wire, CURR1, CIRCUITHEIGHT, DELTA);
+
+				int ioIndex = liAddIOPoint2(wire);
+
+				if(causal.circuit[*it].type == AA || causal.circuit[*it].type == YY)
+				{
+					liAddPinPair(wire, ioIndex, causal.circuit[*it].type == AA ? ATYPE : YTYPE);
+
+					state.operationIdToCircuitPinIndex[*it] = allpins.size() - 1;
+				}
+				else
+				{
+					//pentru a marca care sunt injectii, la inputuri leg de io, iar la injectii nu
+					simplegeom.addSegment(ioIndex, lastIndex[wire][CURR1]);
+					simplegeom.addSegment(ioIndex, lastIndex[wire][CURR2]);
+				}
+
+				liAddAxisOffset(wire, CURR1, CIRCUITHEIGHT, -DELTA);
+			}
+		}
+
+		//move the curr indices to be prev indices
+		liCopyCurrsOverPrevs(wire);
+
+		if(isControl)
+		{
+			addDual(causal, *it);
 		}
 	}
 }
 
-void circuitgeometry::addDual(circuitmatrix& circ, int ctrli, int ctrlj)
+void circuitgeometry::addDual(causalgraph& causal, int opid)
 {
-//	int maxheight = circ.size() * DELTA;
-//
-//	vector<int> targets = circ.findTarget(ctrli, ctrlj);
-//
-//	int min = ctrli < targets[0] ? ctrli : targets[0];
-//	int max = ctrli > targets[targets.size() - 1] ? ctrli : targets[targets.size() - 1];
-//
-//	//2 points for control: c1 the left, c2 the right
-//	vector<int> c1(3, -100);//-100 represents nothing
-//
-//	c1[CIRCUITWIDTH] = DELTA*min - 1;//-1 because of dual space
-//	c1[CIRCUITDEPTH] = ctrlj * getDepthShift() - 1;//compact to bridge ?//-1 because of dual space
-//	c1[CIRCUITHEIGHT] = DUALUPCOORD;
-//
-//	vector<int> c2;
-//	c2.assign(c1.begin(), c1.end());
-//	c2[CIRCUITDEPTH] += 2*DELTA;//ce se intampla aici?
-//
-//	int firstDIndex = addCoordinate(c2);
-//
-//	int lastDIndex = addCoordinate(c1);
+	vector<int> targets = causal.circuit[opid].wires;
+	int level = causal.circuit[opid].level;
+	int wire = targets[0];
 
-	int maxheight = circ.size() * DELTA;
+	std::sort(targets.begin(), targets.end());
 
-	vector<int> targets = circ.findTarget(ctrli, ctrlj);
-
-	int min = ctrli < targets[0] ? ctrli : targets[0];
-	int max = ctrli > targets[targets.size() - 1] ? ctrli : targets[targets.size() - 1];
-
-	liInitCurrDual(min, ctrlj, circ);
-
-	//c1 este la lastindex[CURR1]
-	//c2 este la lastindex[CURR2]
+	liInitCurrDual(targets[0], level);
 
 	//create the horizontal defect
-	simplegeom.addSegment(lastindex[CURR1], lastindex[CURR2]);
+	simplegeom.addSegment(lastDualIndices[CURR1], lastDualIndices[CURR2]);
 
-	int prevTarget = min;
-
-	bool firstTarget = true;
-
-	//why was this?
-	//c1[CIRCUITWIDTH] += DELTA;//why?
-
-	//it is not guaranteed that the targets are ordered
-	//iterate through all the possible target positions in the circuit
-	for(int i=min; i<=max; i++)
+	for(size_t otherWire = 0; otherWire < targets.size(); otherWire++)
 	{
-		vector<int>::iterator it = find (targets.begin(), targets.end(), i);
-		//if a target was found
-		if (it != targets.end())
+		int dist = 0;
+		if(otherWire>0)
 		{
-			//compute the distance between the current target and the previous one
-			int dist = i - prevTarget - 1;
-
-			if(firstTarget)
-			{
-				dist++;
-				firstTarget = false;
-			}
-
-			//if(dist > 0)
-			{
-				//prelungeste segmentul doar daca nu e prima oara
-				//printf("dist=%d\n", dist);
-				//move the c1 point to
-				//modifyCoordinateAndAddSegment(CIRCUITWIDTH, c1[CIRCUITWIDTH] + DELTA*dist, CURR1);
-				//addDepthOffsetLastIndices(CURR1, DELTA * dist, lastindex);
-				liAddAxisOffsetAndAddSegment(CURR1, CIRCUITWIDTH, DELTA * dist);
-			}
-
-			liSetAxisValueAndAddSegment(CURR1, CIRCUITHEIGHT, DUALDOWNCOORD);//go down
-			//modifyCoordinateAndAddSegment(CIRCUITWIDTH, c1[CIRCUITWIDTH] + DELTA, CURR1);//braid
-			liAddAxisOffsetAndAddSegment(CURR1, CIRCUITWIDTH, DELTA);//braid
-
-			//go up if the last index is a target
-			if(i == max)
-				liSetAxisValueAndAddSegment(CURR1, CIRCUITHEIGHT, DUALUPCOORD);//go up
-
-			prevTarget = i;
+			dist = targets[otherWire] - targets[otherWire-1] - 1;
+		}
+		liDualAddAxisOffsetAndAddSegment(CURR1, CIRCUITWIDTH, DELTA * dist);//extend
+		//if its not the control line
+		if(targets[otherWire] != wire)
+		{
+			liDualAddAxisOffsetAndAddSegment(CURR1, CIRCUITHEIGHT, -DELTA);//go down
+			liDualAddAxisOffsetAndAddSegment(CURR1, CIRCUITWIDTH, DELTA);//braid
+			liDualAddAxisOffsetAndAddSegment(CURR1, CIRCUITHEIGHT, DELTA);//go up
 		}
 		else
 		{
-			//go up only if the next index is not a target
-			liSetAxisValueAndAddSegment(CURR1, CIRCUITHEIGHT, DUALUPCOORD);//go up
+			liDualAddAxisOffsetAndAddSegment(CURR1, CIRCUITWIDTH, DELTA);//extend
 		}
 	}
 
-	if(ctrli == max)
-	{
-		//controlul nu apare in lista de targeturi, dar defectul trebuie extins sa cuprinda si bara verticala
-		//modifyCoordinateAndAddSegment(cCIRCUITWIDTH, c1[CIRCUITWIDTH] + 2*(max-lasttarget), CURR1);
-		liAddAxisOffsetAndAddSegment(CURR1, CIRCUITWIDTH, 2*(max - prevTarget));
-	}
-
-	//move to the right
-	//modifyCoordinateAndAddSegment(c1, 1, c1[1] + (bridgecnotprimals ? 2 : 4), lastDIndex);
-	//modifyCoordinateAndAddSegment(CIRCUITDEPTH, c1[CIRCUITDEPTH] + (2*DELTA), CURR1);
-	liAddAxisOffsetAndAddSegment(CURR1, CIRCUITDEPTH, 2*DELTA);
+	//move to the right - non-bridge?
+	liDualAddAxisOffsetAndAddSegment(CURR1, CIRCUITDEPTH, getDepthShift()/*2*DELTA*/);
 
 	//connect upwards on the circuitwidth axis to the c2 point
-	simplegeom.addSegment(lastindex[CURR1], lastindex[CURR2]);
+	simplegeom.addSegment(lastDualIndices[CURR1], lastDualIndices[CURR2]);
 }
 
 int circuitgeometry::getDepthShift()
 {
-//	int shift = bridgecnotprimals ? DELTA : 2*DELTA;
-//	shift +=  bridgecnotduals ? 0 : DELTA;
-
-	int shift = 2*DELTA;
-	shift +=  DELTA;
+	int shift = useBridge ? DELTA : 2*DELTA;
 
 	return shift;
 }
 
-void circuitgeometry::liAddAxisOffset(int indexPos, int axis, int offset)
+void circuitgeometry::liAddAxisOffset(int wire, int indexPos, int axis, int offset)
 {
-	coordinate c1(simplegeom.coords[lastindex[indexPos]]);
+	convertcoordinate c1(simplegeom.coords[lastIndex[wire][indexPos]]);
 	c1[axis] += offset;
 
-	lastindex[indexPos] = simplegeom.addCoordinate(c1);
+	lastIndex[wire][indexPos] = simplegeom.addCoordinate(c1);
 }
 
-void circuitgeometry::liAddAxisOffsetAndAddSegment(int indexPos, int axis, int offset)
+void circuitgeometry::liDualAddAxisOffset(int indexPos, int axis, int offset)
 {
-	int previndex = lastindex[indexPos];
-	liAddAxisOffset(indexPos, axis, offset);
-	simplegeom.addSegment(previndex, lastindex[indexPos]);
+	convertcoordinate c1(simplegeom.coords[lastDualIndices[indexPos]]);
+	c1[axis] += offset;
+
+	lastDualIndices[indexPos] = simplegeom.addCoordinate(c1);
 }
 
-void circuitgeometry::liSetAxisValueAndAddSegment(int indexPos, int axis, int value)
+void circuitgeometry::liAddAxisOffsetAndAddSegment(int wire, int indexPos, int axis, int offset)
 {
-	coordinate c1(simplegeom.coords[lastindex[indexPos]]);
+	int previndex = lastIndex[wire][indexPos];
+	liAddAxisOffset(wire, indexPos, axis, offset);
+	simplegeom.addSegment(previndex, lastIndex[wire][indexPos]);
+}
+
+void circuitgeometry::liDualAddAxisOffsetAndAddSegment(int indexPos, int axis, int offset)
+{
+	int previndex = lastDualIndices[indexPos];
+	liDualAddAxisOffset(indexPos, axis, offset);
+	simplegeom.addSegment(previndex, lastDualIndices[indexPos]);
+}
+
+void circuitgeometry::liSetAxisValueAndAddSegment(int wire, int indexPos, int axis, int value)
+{
+	convertcoordinate c1(simplegeom.coords[lastIndex[wire][indexPos]]);
 	c1[axis] = value;
 
 	//vector<int> c;
@@ -351,44 +306,57 @@ void circuitgeometry::liSetAxisValueAndAddSegment(int indexPos, int axis, int va
 
 	int currindex = simplegeom.addCoordinate(c1);
 
-	simplegeom.addSegment(lastindex[indexPos], currindex);
-	lastindex[indexPos] = currindex;
+	simplegeom.addSegment(lastIndex[wire][indexPos], currindex);
+	lastIndex[wire][indexPos] = currindex;
 }
 
-void circuitgeometry::liInitCurrPrimal(int i, int j)
+void circuitgeometry::liInitCurrPrimal(int wire, int level)
 {
-	coordinate c1; //-100 represents nothing
+	convertcoordinate c1; //-100 represents nothing
 	//c1[0] = maxheight - i*2;
-	c1[CIRCUITWIDTH] = i * DELTA;
+	c1[CIRCUITWIDTH] = wire * DELTA + 1;
 	//c1[1] = j*4;
-	c1[CIRCUITDEPTH] = j * getDepthShift(); //compacted to bridge?
-	c1[CIRCUITHEIGHT] = 0;
+	c1[CIRCUITDEPTH] = level * getDepthShift() + 1; //compacted to bridge?
+	c1[CIRCUITHEIGHT] = 1;
 
-	coordinate c2 (c1);
+	convertcoordinate c2 (c1);
 	//c2.assign(c1.begin(), c1.end());
 	c2[CIRCUITHEIGHT] += DELTA;
 
 	//add the two points
-	lastindex[CURR1] = simplegeom.addCoordinate(c1);
-	lastindex[CURR2] = simplegeom.addCoordinate(c2);
+	lastIndex[wire][CURR1] = simplegeom.addCoordinate(c1);
+	lastIndex[wire][CURR2] = simplegeom.addCoordinate(c2);
 }
 
-void circuitgeometry::liInitCurrDual(int i, int j, circuitmatrix& circ)
+int circuitgeometry::getPrevHalfDelta(int direction)
 {
+	int ret = DELTA / 2;
+	if(ret%2 == 1)
+		ret += direction;
+	return ret;
+}
+
+void circuitgeometry::liInitCurrDual(int wire, int level)
+{
+	//DELTA este distanta, dar eu pentru plumbing pieces am nevoie de ceva care este factor de 5d/4
+
 	//2 points for control: c1 the left, c2 the right
-	coordinate c1;//-100 represents nothing
+	convertcoordinate c1;//-100 represents nothing
 
-	c1[CIRCUITWIDTH] = i * DELTA - 1;//-1 because of dual space
-	c1[CIRCUITDEPTH] = j * getDepthShift() - 1;//compact to bridge ?//-1 because of dual space
-	c1[CIRCUITHEIGHT] = DUALUPCOORD;
+	c1[CIRCUITWIDTH] = wire * DELTA - getPrevHalfDelta(-1);
+	c1[CIRCUITDEPTH] = (level - 1) * getDepthShift() + getPrevHalfDelta(+1); //compacted to bridge?
+	c1[CIRCUITHEIGHT] = getPrevHalfDelta(-1);
 
-	coordinate c2 (c1);
+	convertcoordinate c2 (c1);
 	//c2.assign(c1.begin(), c1.end());
-	c2[CIRCUITDEPTH] += 2 * DELTA;//ce se intampla aici?
+	//c2[CIRCUITDEPTH] += 2 * DELTA;//ce se intampla aici?
+
+	//non-bridge?
+	c2[CIRCUITDEPTH] += getDepthShift();/*otherwise it would be before the primal defect*/;//ce se intampla aici?
 
 	//int firstDIndex = addCoordinate(c2);
-	lastindex[CURR2] = simplegeom.addCoordinate(c2);
+	lastDualIndices[CURR2] = simplegeom.addCoordinate(c2);
 
 	//int lastDIndex = addCoordinate(c1);
-	lastindex[CURR1] = simplegeom.addCoordinate(c1);
+	lastDualIndices[CURR1] = simplegeom.addCoordinate(c1);
 }

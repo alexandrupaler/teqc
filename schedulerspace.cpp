@@ -12,7 +12,7 @@ schedulerspace::schedulerspace(numberandcoordinate& nandc, int maxBoxHeight)
 	liber.second = INT_MAX;
 
 	freeSpaceOnHeight.clear();
-	for (vector<inputpin>::iterator it = nandc.inputList.begin(); it != nandc.inputList.end(); it++)
+	for (vector<pinpair>::iterator it = nandc.inputList.begin(); it != nandc.inputList.end(); it++)
 	{
 		freeSpaceOnHeight[(*it)[OFFSETNONCOORD + CIRCUITWIDTH]].push_back(liber);
 	}

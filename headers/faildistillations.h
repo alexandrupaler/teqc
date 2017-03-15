@@ -5,8 +5,6 @@
 #include <vector>
 #include <utility>
 
-typedef inputpin pinpair;
-
 using namespace std;
 
 #define X 1
@@ -21,36 +19,27 @@ class faildistillations
 public:
 	faildistillations();
 
-	faildistillations(char* circIoFile, char* allPinsFile);
-
-	void writeFailedDistillations();
-
 	void writeCircuitToDistillationConnections(char* fname);
 
-	void selectDistillationForCircuitInput(double afail, double yfail);
+	void selectDistillationForCircuitInput (const char* circIoFile, const char* allPinsFile, double afail, double yfail, vector<pinpair>& toconn);
 
-	double randomCheckThreshold(double& prob);
+	void selectDistillationForCircuitInput(numberandcoordinate& circIOs, numberandcoordinate& boxIOs, double afail, double yfail, vector<pinpair>& toconn);
 
-//	void readAllPinsCoordinates(char* filename);
+	bool randomCheckThreshold(double& prob);
 
-	int decideAndStore(double failprob, int IOIndex, int& lastpos);
+	int decideAndStore(double failprob, numberandcoordinate& circIOs, int IOIndex, numberandcoordinate& boxIOs, int& lastpos, vector<pinpair>& toconn);
 
-	int storeConnectEntry(int IOIndex, int posdist);
+	int decide(double prob, numberandcoordinate& boxIOs, int origposition, int lastPosition);
 
-	int decide(double prob, int origposition, int lastPosition);
+	vector<pair<int, int> > computePinIndexPairs(numberandcoordinate& boxIOs, int boxIndex);
 
-	vector<pair<int, int> > computePinIndexPairs(int posdist);
-
-//	int transformIOIndexToDistIndex(int ioindex);
-
-//	int getDistPinType(int distindex);
+	int storeConnectEntry(numberandcoordinate& circIOs, int IOIndex, numberandcoordinate& boxIOs, int boxIndex, vector<pinpair>& toconn);
 
 public:
-	//vector<vector<int> > distpins;
-	vector<int> failedDistillations;
-	numberandcoordinate circIOs;
-	numberandcoordinate boxIOs;
-	vector<pinpair> nonFailedPinPairCoords;
+//	vector<int> failedDistillations;
+//	numberandcoordinate circIOs;
+//	numberandcoordinate boxIOs;
+//	vector<pinpair> nonFailedPinPairCoords;
 };
 
 

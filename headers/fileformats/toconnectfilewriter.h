@@ -11,7 +11,7 @@ class toconnectfilewriter
 {
 public:
 	static string getToConnectFileName(const char* basisname);
-	void writeToConnectFileName(FILE* file, vector<pinpair>& pairs);
+	void writeToConnectFile(FILE* file, vector<pinpair>& pairs);
 };
 
 

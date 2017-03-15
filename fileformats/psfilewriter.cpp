@@ -21,12 +21,13 @@ void psfilewriter::writePostScriptFile(FILE* pFile, circuitmatrix& circ)
 	fprintf(pFile, "30 %d moveto\n", height - 15);
 
 	//not as general as Qcircuit
-	int inQubit = 0;
-	int outQubit = 0;
+//	int inQubit = 0;
+//	int outQubit = 0;
+	circ.size();
 
-	for(int i=0; i<circ.size(); i++)
+	for(size_t i = 0; i < circ.size(); i++)
 	{
-		for(int j=0; j<circ.at(i).size(); j++)
+		for(size_t j = 0; j < circ.at(i).size(); j++)
 		{
 			int cmd = circ.at(i).at(j);
 			if(cnotcounter::isCnot(cmd))
@@ -38,12 +39,12 @@ void psfilewriter::writePostScriptFile(FILE* pFile, circuitmatrix& circ)
 			{
 				/*search measurement*/
 				int length = 0;
-				for(int k=j+1; k<circ.at(i).size(); k++)
+				for(size_t k=j+1; k < circ.at(i).size(); k++)
 				{
 					//if(measurements.find(circ.at(i).at(k)) != measurements.end())
 					if(circ.isMeasurement(i, k))
 					{
-						length = k - j;
+						length = k - j - 1;
 						break;
 					}
 				}
@@ -64,7 +65,8 @@ void psfilewriter::writePostScriptFile(FILE* pFile, circuitmatrix& circ)
 						break;
 				}
 				//fprintf(pFile, "n %d wire ", (int)(circ.at(i).size() - 1));
-				fprintf(pFile, "n %d wire ", length);
+				//fprintf(pFile, "n %d wire ", length);
+				fprintf(pFile, "%d wire ", length);
 			}
 			else if(cmd == MZ)
 			{

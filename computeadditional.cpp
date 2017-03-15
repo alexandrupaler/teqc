@@ -16,7 +16,7 @@ double computeadditional::comb(int n, int k)
 
 double computeadditional::sum(int nrGates, int nrDistillations, double failProb)
 {
-	int dif = nrDistillations - nrGates;
+//	int dif = nrDistillations - nrGates;
 	double prob = 0;
 	for (int i = nrGates; i <= nrDistillations; i++)
 	{
@@ -26,28 +26,6 @@ double computeadditional::sum(int nrGates, int nrDistillations, double failProb)
 	}
 	return prob;
 }
-
-//int computeadditional::findMiddle( int tgates, int astates, double afail, double targetprob)
-//{
-//	if(astates == tgates)
-//		return astates;
-//
-//	int ret = 0;
-//	int middle = (int)floor((tgates + astates)/2);
-//
-//	double prob = sum(tgates, astates, afail);
-//
-//	if(prob > targetprob)
-//	{
-//		ret = findMiddle(middle + 1, astates, afail, targetprob);
-//	}
-//	else
-//	{
-//		ret = findMiddle(tgates,  middle, afail, targetprob);
-//	}
-//
-//	return ret;
-//}
 
 int computeadditional::findParam(int nrGates, double failProb, double targetProb)
 {

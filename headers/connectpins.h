@@ -9,34 +9,69 @@
 #include "numberandcoordinate.h"
 #include "geometry.h"
 #include "faildistillations.h"
-
-#define DISTPIN 1
-#define CIRCPIN 0
+#include "rtree/RStarTree.h"
+#include "astar/astaralg.h"
+#include "heuristicparameters.h"
 
 #define NONFAILEDBOX 2
 #define ABOXADD 0
 #define YBOXADD 1
 #define INDEX 0
 
+#define CANONICAL 0
+#define ASTAR 1
+
+#define ENFORCE_BLOCK true
+#define REMOVE_BLOCK false
+
 using namespace std;
 
 class connectpins
 {
 public:
-	geometry geom;
+	geometry connectionsGeometry;
+
+	geometry debugBlockOccupyGeometry;
+	geometry debugBlockGuideGeometry;
+
+	Pathfinder pathfinder;
+
+	heuristicparameters heuristicParam;
 
 public:
-	void processPins(char* fname);
+	bool processPins(char* fname, int method);
 
-	int getCircuitPinIndex(coordinate& coord);
+	bool processPins(vector<pinpair>& pins, int method);
 
-	int getAfterFail2(coordinate& coordDist, coordinate& coordCirc);
+	int getCircuitPinIndex(convertcoordinate& coord);
 
-	coordinate extractPoint(int part, pinpair& cl);
+	int getAfterFail2(convertcoordinate& coordDist, convertcoordinate& coordCirc);
 
-	int offsetChangeIndexAndStore(coordinate& p, int pos, int off);
+	pindetails extractPoint(int part, pinpair& cl);
 
-	void connect2(pinpair& coordline);
+	int offsetChangeIndexAndStore(convertcoordinate& p, int pos, int off);
 
+	void connectCanonical(pinpair& coordline);
+
+	bool connectWithAStar(pinpair& coordline);
+
+	void blockPins(vector<pinpair>& pins);
+
+	void unblockPins(vector<pinpair>& pins);
+
+	void blockCoordinates(pindetails& detail);
+
+	void unblockCoordinates(pindetails& detail);
+
+	void unblockCoordinatesForced(pindetails& detail);
+
+	void setWalkable(pindetails& detail, bool enforce, int whichBlockType/*, int walk, bool force*/);
+
+	void filterAndAddToCorners(vector<convertcoordinate>& corners, Point* current);
+
+	/*Debugging*/
+	geometry* whereToDebug(int blockType);
+	int debugFirstCoordinate(int blockType, convertcoordinate& coord);
+	int debugSecondCoordinate(int blockType, int deb1, convertcoordinate& coord, bool enforce);
 };
 #endif /* CONNECTPINS_H_ */

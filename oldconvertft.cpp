@@ -1,12 +1,13 @@
 #include "gatenumbers.h"
 #include "databasereader.h"
 #include "decomposition.h"
+#include "plumbingpieces.h"
 
 #include "fileformats/infilereader.h"
 #include "fileformats/geomfilewriter.h"
+#include "fileformats/adamfilewriter.h"
 #include "fileformats/iofilewriter.h"
 #include "fileformats/boundingboxfilewriter.h"
-
 #include "fileformats/chpfilewriter.h"
 #include "fileformats/psfilewriter.h"
 #include "fileformats/qcircfilewriter.h"
@@ -20,11 +21,31 @@
 #include <string.h>
 #include <sys/time.h>
 
+#include "recycling/recycle.h"
 #include "cnotcounter.h"
 #include "circuitgeometry.h"
 #include "circuitmatrix.h"
 
+#include "computeadditional.h"
+
+#include "heuristicparameters.h"
+
+#include "scheduling/schedulercontrol.h"
+#include "scheduling/seqschedcontrol.h"
+#include "scheduling/asapschedcontrol.h"
+#include "scheduling/alaptschedcontrol.h"
+
 #include <climits>
+#include <map>
+
+#include "boxworld2.h"
+#include "connectpins.h"
+#include "connectionmanager.h"
+
+#include "fileformats/iofilewriter.h"
+#include "fileformats/boxcoordfilewriter.h"
+#include "fileformats/toconnectfilewriter.h"
+#include "fileformats/geomfilewriter.h"
 
 using namespace std;
 
@@ -32,457 +53,48 @@ databasereader dbReader;
 cnotcounter cncounter;
 circuitgeometry geom;
 circuitmatrix circ;
+plumbingpiecesgenerator ppgen;
+heuristicparameters heuristicParam;
 
-//map<vector<int>, bool> existaCnotLaImpingere;
-
-/**
- * Returns a random number
- * @param min minimum value of random number
- * @param max maximum value of random number
- * @return the random number
- */
-int getRandomNumber(int min, int max)
+string writeGeometry(char** argv)
 {
-	int q = lrand48() % max;
-	while(q < min)
-		q = lrand48() % max;
-	return q;
-}
-
-/**
- * For a circuit matrix cell that represents a CNOT element, find
- * the other element, and return a vector containing both lines.
- * @param line
- * @param col
- * @return vector of line indices containing the CTRL and TGT of a CNOT
- */
-vector<int> findCNOTEndpoints(int line, int col)
-{
-	int type = cncounter.getCnotPart(circ[line].at(col));
-	int capat = -1;
-	if(type == CTRL)
-	{
-		capat = circ.findTarget(line, col)[0];
-	}
-	else
-	{
-		capat = circ.findControl(line, col)[0];
-	}
-
-	vector<int> endpts;
-	endpts.push_back(capat);
-	endpts.push_back(col);
-
-	return endpts;
-}
-
-/**
- * Checks if on a given line there are enough empty cells
- * @param line the matrix line representing a qubit to check
- * @param col the starting column
- * @param nrCols the number of columns required for free cells
- * @return the number of empty cells on the line, thus the number of columns having empty cells
- */
-int isFreeSpace(int line, int col, int nrCols)
-{
-	bool isSpace = true;
-	for(int j=1; j<(nrCols+1); j++)
-	{
-		int y = col + j;
-		if(y<0 || y >= circ.at(line).size())
-		{
-			//isSpace = false;
-			//break;
-			return j-1;
-		}
-//		printf("check %d %d %d\n", line, y, circ.at(line).at(y));
-		if(!circ.isWire(line, y))//|| intersectsCnot(line,y).size()!=0)/* && circ.at(line).at(y) != INPUT)*/
-		{
-			//isSpace = false;
-			//break;
-			return j-1;
-		}
-	}
-	return nrCols;
-}
-
-/**
- * Checks if a given circuit matrix cell is between the control and the target
- * of a CNOT. For example, consider that the control has coordinate (1,5) and
- * the target has coordinate (4,5). The cell (2,5) intersects the CNOT, but the
- * cell (7,5) does not. In the previous example, the first coordinate represents
- * the qubit number (line) and the second coordinate the gate number (column).
- * @param line
- * @param col
- * @return true if it intersects, false otherwise
- */
-vector<int> intersectsCnot(int line, int col)
-{
-	vector<int> ret;
-
-	if(cnotcounter::isCnot(circ.at(line).at(col)))
-	{
-		ret.push_back(line);
-		int celalt = findCNOTEndpoints(line, col)[0];
-		ret.push_back(celalt);
-
-		//printf("@ %d,%d iscnot\n", linie, col);
-
-		return ret;//pure luck - directly a CNOT
-	}
-
-	for(int i=line; i>=0; i--)
-	{
-		//go up and search for a CNOT element
-		if(col < circ.at(i).size() && cncounter.isCnot(circ.at(i).at(col)))
-		{
-			//printf("@ %d,%d iscnot\n", i, col);
-
-			int celalt = findCNOTEndpoints(i, col)[0];
-			if(celalt > line)
-			{
-				ret.push_back(i);
-				ret.push_back(celalt);
-			}
-		}
-	}
-
-	return ret;
-}
-
-/**
- * Replaces the Hadamard gate with its non-ICM decoposition. The method should be
- * moved tp processraw
- * @param line
- * @param col
- */
-void replaceH(int line, int col)
-{
-	string key = dbReader.intToName.at(HGATE);
-	decomposition hada = dbReader.decomp[key];
-
-	int maxCols = hada.getMaxCols();
-
-	//0 hardcoded because hadamard
-	for(int i=0; i<hada.gates[0].size(); i++)
-	{
-		circ.at(line).at(col + i) = hada.gates[0][i];
-	}
-}
-
-/**
- *
- * @param lines
- * @param line
- * @param col
- * @param nrCols
- */
-void replaceT(vector<vector<int> >& lines, int line, int col, int nrCols)
-{
-	circ[line].at(col + /*nrCols*/1) = MZ;//measure Z
-
-	//first move is to connect the ancillas to the circ
-	int cnotctrlid = cncounter.getNextCnotNumber();
-	int cnottrgtid =  cnotctrlid + 1;
-
-	lines.at(0).at(col) = (cnotctrlid);//make control?
-
-	circ[line].at(col) = cnottrgtid;//make target?
-	//initialize the first ancilla
-	lines.at(0).at(0) = AA;
-
-	//add selective target and destination subcircuit
-	int cnots[5];
-	for(int i=0; i<5; i++)
-	{
-		cnots[i] = cncounter.getNextCnotNumber();
-	}
-
-	lines.at(0).at(col + 1) = cnots[0];//control
-	lines.at(0).at(col + 2) = cnots[1] + 1;//target
-	lines.at(0).at(col + 4) = MZX;// 9;//measure Z/X
-
-	lines.at(1).at(0) = -3;//zero
-	lines.at(1).at(col + 1) = cnots[0] + 1;//target
-	lines.at(1).at(col + 2) = WIRE;//0;//wire
-	lines.at(1).at(col + 3) = cnots[2] + 1;//target
-	lines.at(1).at(col + 4) = MXZ;//  8;//measure X/Z
-
-	lines.at(2).at(0) = YY;// -2;//y
-	lines.at(2).at(col + 1) = WIRE;//0;//wire
-	lines.at(2).at(col + 2) = cnots[1];//control
-	lines.at(2).at(col + 3) = WIRE;//0;//wire
-	lines.at(2).at(col + 4) = cnots[3];//control
-	lines.at(2).at(col + 5) = WIRE;//0;//wire
-	lines.at(2).at(col + 6) = MXZ;//8;//measure X/Z
-
-	lines.at(3).at(0) = PLUS;//-4;//+
-	lines.at(3).at(col + 1) = WIRE;//0;//wire
-	lines.at(3).at(col + 2) = WIRE;//0;//wire
-	lines.at(3).at(col + 3) = cnots[2];//control
-	lines.at(3).at(col + 4) = WIRE;//0;//wire
-	lines.at(3).at(col + 5) = cnots[4];//control
-	lines.at(3).at(col + 6) = MZX;//9;//measure Z/X
-
-	lines.at(4).at(0) = ZERO;//-3;//+
-	lines.at(4).at(col + 1) = WIRE;//0;//wire
-	lines.at(4).at(col + 2) = WIRE;//0;//wire
-	lines.at(4).at(col + 3) = WIRE;//0;//wire
-	lines.at(4).at(col + 4) = cnots[3] + 1;//target
-	lines.at(4).at(col + 5) = cnots[4] + 1;//target
-	//lines.at(4).at(col + 6) = WIRE;//0;//wire
-}
-
-/**
- *
- * @param lines
- * @param line
- * @param col
- * @param nrCols
- */
-void replaceP(vector<vector<int> >& lines, int line, int col, int nrCols)
-{
-	circ.at(line).at(col + nrCols) = MZ;// 6;//measure Z
-
-	//first move is to connect the ancillas to the circ
-	int cnotctrlid = cncounter.getNextCnotNumber();
-	int cnottrgtid =  cnotctrlid + 1;
-
-	lines.at(0).at(col) = cnotctrlid;//make control?
-	circ.at(line).at(col) = cnottrgtid;//make target?
-	//initialize the first ancilla
-	lines.at(0).at(0) = YY/* -2*/;
-}
-
-/**
- *
- * @param lines
- * @param line
- * @param col
- * @param nrCols
- */
-void replaceV(vector<vector<int> >& lines, int line, int col, int nrCols)
-{
-	circ.at(line).at(col + nrCols) = MX;//7;//measure X
-
-	//first move is to connect the ancillas to the circ
-	int cnotctrlid = cncounter.getNextCnotNumber();
-	int cnottrgtid =  cnotctrlid + 1;
-
-	lines.at(0).at(col) = cnottrgtid;//make control?
-	circ.at(line).at(col) = cnotctrlid;//make target?
-
-	//initialize the first ancilla
-	lines.at(0).at(0) = YY/*-2*/;
-}
-
-/**
- * Prepares the circuit matrix representation for replacing a non-ICM gate
- * with its ICM decomposition. It introduces additional lines (qubit ancillae)
- * required by the ICM representation.
- * @param type
- * @param line
- * @param col
- */
-void replace(int gateType, int line, int col)
-{
-	//check if there is space on the columns before the gate
-	//if yes, then lines and columns should not be added,
-	//in order to reduce the size of the circuit
-	int nrCols = 1;
-	int nrLines = 1;
-	if(gateType == TGATE)//for corrected T gates add multiple lines and cols
-	{
-		nrCols = 6;
-		nrLines = 5;
-	}
-
-	//for P introduce a row after line
-	//for R introduce a row after line
-	//for T introduce 5 rows after line
-	vector<vector<int> > lines;
-	for(int i=0; i< nrLines; i++)
-	{
-		vector<int> v(circ.at(line).size(), WIRE);
-		lines.push_back(v);
-	}
-
-	//copy from prev line to last new line
-	//for P this is line +1
-	//for R this is line+1
-	//for T this is line +5
-	if(nrCols > 0)
-	{
-		//for(int cl = col + 1 + nrCols; cl < circ.at(line).size(); cl++)
-		for(int cl = col + 1; cl < circ.at(line).size(); cl++)
-		{
-			lines.at(lines.size() - 1).at(cl) = circ.at(line).at(cl);
-			circ.at(line).at(cl) = WIRE;
-		}
-	}
-
-	if(gateType == PGATE)
-	{
-		replaceP(lines, line, col, nrCols);
-	}
-	else if (gateType == RGATE)
-	{
-		replaceV(lines, line, col, nrCols);
-	}
-	else if (gateType == TGATE)
-	{
-		replaceT(lines, line, col, nrCols);
-	}
-	else if(gateType == HGATE)
-	{
-		replaceH(line, col);
-	}
-
-	//insert the lines
-	circ.insertRows(line + 1, lines);
-}
-
-void replaceAllHs()
-{
-	bool isH = true;
-	while(isH)
-	{
-		isH = false;
-		for(int i=0; i<circ.size(); i++)
-		{
-			for(int j=0; j<circ.at(i).size(); j++)
-			{
-				if(circ.at(i).at(j) == HGATE)
-				{
-					replaceH(i,j);
-					isH = true;
-				}
-			}
-		}
-	}
-}
-
-/**
- * Searches for all the qubit measurements and moves them to the rightmost
- * possible position on the circuit matrix representation.
- */
-void moveMeasurementsToRight()
-{
-	for(int i=0; i<circ.size(); i++)
-	{
-		vector<int> ms;
-		for(int j=0; j<circ.at(i).size(); j++)
-		{
-			if(circ.isMeasurement(i, j))
-			{
-				ms.push_back(j);
-			}
-		}
-
-		//find the next element which is not an EMPTY
-		vector<int> firstNonEmpty;
-		for(vector<int>::iterator it=ms.begin(); it!=ms.end(); it++)
-		{
-			int mindex = *it;
-			int currindex = mindex + 1;
-			while(circ.indexLessThanSize(i, currindex) && (circ.isEmpty(i, currindex) || circ.isWire(i, currindex)))
-			{
-				currindex++;
-			}
-			currindex--;
-			firstNonEmpty.push_back(currindex);
-		}
-
-		//move the measurement to the right
-		for(int j=0; j<ms.size(); j++)
-		{
-			int val = circ.at(i).at(ms[j]);
-			for(int k=ms[j]; k<firstNonEmpty[j]; k++)
-			{
-				circ.at(i).at(k) = WIRE;
-			}
-			circ.at(i).at(firstNonEmpty[j]) = val;
-		}
-	}
-}
-
-/**
- * Searches for all the qubit measurements and moves them to the leftmost
- * possible position on the circuit matrix representation.
- */
-void moveMeasurementsToLeft()
-{
-	for(int i=0; i<circ.size(); i++)
-	{
-		vector<int> measurementIndices;
-		//save a list of all the measurements on a given qubitline
-		for(int j=0; j<circ.at(i).size(); j++)
-		{
-			if(circ.isMeasurement(i, j))
-			{
-				measurementIndices.push_back(j);
-			}
-		}
-
-		//find pair initialisation/cnot/etc
-		vector<int> firstWireBeforeM;
-		for(vector<int>::iterator it=measurementIndices.begin(); it!=measurementIndices.end(); it++)
-		{
-			int mindex = *it;
-			int currindex = mindex - 1;
-			while(circ.isWire(i, currindex))
-			{
-				currindex--;
-			}
-			currindex++;//ultimul index a fost inainte
-			firstWireBeforeM.push_back(currindex);
-		}
-
-		//move the measurement to the left
-		//resutl: deletes the wire between control/target and measurement
-		for(int j=0; j<measurementIndices.size(); j++)
-		{
-			int val = circ.at(i).at(measurementIndices[j]);
-			for(int k=firstWireBeforeM[j] + 1; k <= measurementIndices[j]; k++)
-			{
-				circ.at(i).at(k) = EMPTY;
-			}
-			circ.at(i).at(firstWireBeforeM[j]) = val;
-		}
-
-		//there may be wires even after the last measurement: due to possible negligence
-		//it is not wrong, but it is not good for later when the geometry will be generated
-		//remove wires starting from the last measurement
-		if(measurementIndices.size() >= 1)
-		{
-			int lastm = measurementIndices.at(measurementIndices.size() - 1);
-			for(int j=lastm + 1; j<circ.at(i).size(); j++)
-			{
-				circ.at(i).at(j) = EMPTY;
-			}
-		}
-	}
-}
-
-void writeGeometry(char** argv)
-{
+	/**
+	 * The geometry
+	 */
 	geomfilewriter geomwr;
 	string fname = geomfilewriter::getGeomFileName(argv[1]);
 	FILE* geomfile = fopen(fname.c_str(), "w");
 	geomwr.writeGeomFile(geomfile, geom.simplegeom.io, geom.simplegeom.segs, geom.simplegeom.coords);
 	fclose(geomfile);
 
+	/**
+	 * The plumbing pieces of a geometry
+	 */
+	adamfilewriter adamwr;
+	string fnamea = adamfilewriter::getAdamFileName(argv[1]);
+	FILE* adamfile = fopen(fnamea.c_str(), "w");
+	adamwr.writeAdamFile(adamfile, ppgen.pieces);
+	fclose(adamfile);
+
+	/**
+	 * The I/O of a circuit. DEBUGGING PURPOSES ONLY
+	 */
 	iofilewriter iowr;
 	string iofname = iofilewriter::getIOFileName(fname.c_str());
 	FILE* iofile = fopen(iofname.c_str(), "w");
 	iowr.writeIOFile(iofile, geom.allpins.inputList);
 	fclose(iofile);
 
+	/**
+	 * The bounding box of a circuit. DEBUGGING PURPOSES ONLY
+	 */
 	boundingboxfilewriter bboxwr;
 	string bboxname = boundingboxfilewriter::getBoundingBoxFileName(fname.c_str());
 	FILE* bboxfile = fopen(bboxname.c_str(), "w");
 	bboxwr.writeBoundingBoxFile(bboxfile, geom.simplegeom.boundingbox);
 	fclose(bboxfile);
+
+	return iofname;
 }
 
 void writeOtherFormats(const char* basisname)
@@ -506,273 +118,782 @@ void writeOtherFormats(const char* basisname)
 	fclose(psfile);
 }
 
-void arrangeInputsAndOutputs()
+void placeGate(causalgraph& causal, int currId, circuitmatrix& circ, cnotcounter& ccnot)
 {
-	//find outputs - move to absolute right - not like moveMeasurementsToRight
-	for(int i=0; i<circ.size(); i++)
+	int column = causal.circuit[currId].level;
+	int controlline = causal.circuit[currId].wires[0];
+	int operation = causal.circuit[currId].type;
+
+	if(causal.circuit[currId].wires.size() > 1)
 	{
-		if(circ.at(i).size() == 0)
-			continue;
+		int cnot = ccnot.getNextCnotNumber();
 
-		vector<int>::iterator it = circ.at(i).end();
-		while(*(it-1) == EMPTY && it!=circ.at(i).begin())
-		{
-			circ.at(i).erase(it-1);
-			it--;
-		}
-
+		int targetline = causal.circuit[currId].wires[1];
+		circ[controlline][column] = cnot + 0;//+0 because control
+		circ[targetline][column] = cnot + 1;//+1 because target
 	}
-
-	int max = circ.getMaxColumn();
-
-	for(int i=0; i<circ.size(); i++)
+	else if(causal.circuit[currId].wires.size() == 1)
 	{
-		for(int j=0; j<circ.at(i).size(); j++)
-		{
-			if(circ.isOutput(i, j))
-			{
-				if(j != (max-1))
-				{
-					int tointro = max - circ.at(i).size() + 1;//+1 ca sa fiu sigur ca e mutat la capat de tot
-					circ.at(i).insert(circ.at(i).end(), tointro, WIRE);
-					circ.at(i).at(j) = WIRE;
-					circ.at(i).at(max) = OUTPUT;
-				}
-			}
-		}
+		circ[controlline][column] = operation;
 	}
 }
 
-/**
- * 	Insert necessary additional columns
- * 	for the moment, assume all lines have same length
- */
-void extendCircuitWithColumns()
+circuitmatrix createCircuitMatrix(causalgraph& causal)
 {
-	for (int j = 0; j < circ.at(0).size(); j++)
+	vector<int> order = causal.equalizeConsideringCosts();
+
+	//TODO
+	//causal.equalizeInputLevels();
+
+	//construct a vector of qubitlines
+	int length = causal.getMaxLevel() + 1;
+
+	//vector<vector<int> > inputs = extractSortedInputsList();
+	vector<int> inputs = causal.getRoots();
+	int nrLines = inputs.size();
+
+	vector<qubitline> temp;
+	for (int k = 0; k < nrLines; k++)
 	{
-		int col = 0;
-		for (int i = 0; i < circ.size(); i++)
-		{
-			int ccol = 0;
-			int gtype = circ.at(i).at(j);
-
-			if (gtype == TGATE)
-				ccol = 8;
-			if (gtype == PGATE)
-				ccol = 2;
-			if (gtype == RGATE)
-				ccol = 2;
-			if (gtype == HGATE)
-				ccol = 6;
-
-			if (col < ccol)
-				col = ccol;
-		}
-
-		circ.insertColumns(j + 1, col);
+		qubitline wireQubit(length, WIRE);
+		temp.push_back(wireQubit);
 	}
+
+	//use the temp vector to initialise the circuitmatrix
+	circuitmatrix circ(temp);
+
+	//construct the circuitmatrix from the causalgraph
+	//for the ICM representation it should contain only cnot gates
+	cnotcounter ccounter;
+
+	//vector<int> operations = causal.bfs();
+
+	for(vector<int>::iterator it = order.begin(); it != order.end(); it++)
+	{
+		int currid = *it;
+		placeGate(causal, currid, circ, ccounter);
+	}
+
+	return circ;
 }
 
-/**
- * Convert a non-ICM circuit into ICM.
- */
-void convertCirc()
+void writeBoxSchedulerAndClearCoordList(boxworld2& boxworld, const char* basisname, int scheduleNumber)
 {
-	int nrT = 0;
-	int nrP = 0;
-	int nrR = 0;
-	int nrH = 0;
+	boxcoordfilewriter bcwr;
+	string fname = boxcoordfilewriter::getBoxCoordFileName(basisname, scheduleNumber);
+	FILE* fboxplan = fopen(fname.c_str(), "w");
 
-	//count the number of P and T gates
-	for(int i=0; i<circ.size(); i++)
-	{
-		for(int j=0; j<circ.at(i).size(); j++)
-		{
-			int gtype = circ.at(i).at(j);
-			if(gtype == TGATE)
-				nrT++;
-			if(gtype == PGATE)
-				nrP++;
-			if(gtype == RGATE)
-				nrR++;
-			if(gtype == HGATE)
-				nrH+=3;
-		}
-	}
+	bcwr.writeBoxCoordFile(fboxplan, boxworld.currentConfig.boxSize, boxworld.boxCoords, scheduleNumber);
+	fclose(fboxplan);
 
-	//the total number of ancillas
-	int nrAnc = nrT + nrP + nrR + nrH;
-	//add the ancillas
+	//the box coords are cleared after writing them to a file
+	//because boxes are separate from the pins
+	//the boxes file is used for displaying it
+	//the pin file is used for computing the connections
 
-	for(int i=0; i<nrAnc; i++)
-	{
-		int maxj = circ.size();
-		for(int j=0; j<maxj; j++)
-		{
-			int maxk = circ.at(j).size();
-			for(int k=0; k<maxk; k++)
-			{
-				if(circ.at(j).at(k) == PGATE || circ.at(j).at(k) == TGATE || circ.at(j).at(k) == RGATE || circ.at(j).at(k) == HGATE)
-				{
-					replace(circ.at(j).at(k), j, k);
-					k = maxk; j = maxj;//get out of loops
-				}
-			}
-		}
-	}
+	boxworld.boxCoords.clear();
 }
 
-/**
- * Returns if a column was moved or not to the leftmost possible empty column.
- */
-bool moveColumnToTheLeft(int origColumnIndex, int start, int stop)
+void initCostModels(costmodel* model)
 {
-	int destination = origColumnIndex;
+	//ASAP
+	model[0].gateTypeCosts['a'].gatecost = 1;
+	model[0].gateTypeCosts['a'].wirecost = 0;
+	model[0].gateTypeCosts['y'].gatecost = 1;
+	model[0].gateTypeCosts['y'].wirecost = 0;
+	model[0].gateTypeCosts['d'].gatecost = 1; //undeva tre sa fie 1, dar nu mai stiu de ce
+	model[0].gateTypeCosts['d'].wirecost = 0;
 
-	//find the leftmost possible column where the current one can be moved
-	for(int jj=origColumnIndex - 1; jj>=0; jj--)
-	{
-		bool isEmptyColumn = true;
-		for(int i=start; i<=stop; i++)
-		{
-			if(!circ.indexLessThanSize(i, jj))
-				continue;
 
-			bool noOtherCnot = (intersectsCnot(i,jj).size() == 0);
-
-			isEmptyColumn = (isEmptyColumn && (noOtherCnot && (circ.isEmpty(i, jj) || circ.isWire(i, jj))));
-		}
-		if(isEmptyColumn)
-		{
-			destination = jj;
-		}
-		else
-		{
-			//a column cannot move through walls: first encountered wall stops the search
-			break;
-		}
-	}
-
-	if(destination != origColumnIndex)
-	{
-		for(int i=start; i<=stop; i++)
-		{
-			//if(circ.at(i).size() > destination)
-			if(circ.indexLessThanSize(i, destination))
-			{
-				circ.at(i).at(destination) = circ.at(i).at(origColumnIndex);
-
-				if(!circ.isEmpty(i, origColumnIndex))
-				{
-					circ.at(i).at(origColumnIndex) = WIRE;
-				}
-			}
-		}
-
-		return true;
-	}
-
-	return false;
-}
-
-/**
- * The testris operation is just the movement of columns to the left.
- * @return if any column was moved to the left
- */
-bool tetrisColumns()
-{
-	int maxcol = circ.getMaxColumn();
-
-	bool moved = false;
-	//take each column and try to move it to the left
-	for(int j=0; j<maxcol; j++)
-	{
-		printf("*** %d %d\n", j, maxcol);
-		int idxctrl = -1;
-		int idxtgt = -1;
-		for(int i=0; i<circ.size(); i++)//urmareste liniile
-		{
-			if(!circ.indexLessThanSize(i, j))
-				continue;
-
-			if(cncounter.isControl(circ.at(i).at(j)))
-			{
-				idxctrl = i;
-				idxtgt = circ.findTarget(i, j)[0];
-			}
-			else if(cncounter.isTarget(circ.at(i).at(j)))
-			{
-				idxctrl = circ.findControl(i, j)[0];
-				idxtgt = i;
-			}
-
-			//if both the control and the target where found
-			//the cnot is defined between the minimum and the maximum index of both
-			if(idxctrl!=-1 && idxtgt != -1)
-			{
-				int min = idxctrl < idxtgt ? idxctrl : idxtgt;
-				int max = idxctrl > idxtgt ? idxctrl : idxtgt;
-
-				moved = moveColumnToTheLeft(j, min, max) || moved;
-				idxctrl = -1;
-				idxtgt = -1;
-			}
-		}
-	}
-
-	return moved;
+	model[1].gateTypeCosts['a'].gatecost = 10 + 3; //1;
+	model[1].gateTypeCosts['a'].wirecost = 10 + 3; //0;
+	model[1].gateTypeCosts['y'].gatecost = 5 + 3; //1;
+	model[1].gateTypeCosts['y'].wirecost = 5 + 3; //0;
+	model[1].gateTypeCosts['d'].gatecost = 1; //undeva tre sa fie 1, dar nu mai stiu de ce
+	model[1].gateTypeCosts['d'].wirecost = 0;
 }
 
 int main(int argc, char** argv)
 {
-	timeval tim;
-	gettimeofday(&tim, NULL);
-	srand48((unsigned int) tim.tv_usec);
+	FILE* badseedfile;
+	unsigned int seed = 0;
 
-	int distrounds = 0;//number of distillation rounds
+	badseedfile = fopen("seeds.txt", "r");
+	fscanf(badseedfile, "%u", &seed);
+	fclose(badseedfile);
 
-	if(argc < 2)
+	if(seed == 0)
 	{
-		printf("run with [random | fname] [distrounds]\n");
-		return 2;
+		timeval tim;
+		gettimeofday(&tim, NULL);
+		seed = (unsigned int) (tim.tv_usec);
+	}
+	srand48(seed);
+
+	printf("SIMULATION SEED %u\n", seed);
+
+	/**
+	 * Take a circuit and convert it to ICM
+	 */
+	circconvert convert(argv[1]);
+	convert.replaceNonICM();
+	convert.replaceNonICM();
+	convert.replaceICM();
+
+	costmodel model[2];
+	initCostModels(model);
+
+	/**
+	 * Perform recycling
+	 */
+	wirerecycle rec;
+//	rec.recycle(convert, RECYCLENONE, model[0]);
+	rec.recycle(convert, RECYCLEWIRESEQ, model[0]);
+
+	//rec.recycle(convert, RECYCLENONE, model[0]);
+
+	/**
+	 * Generate a circuitmatrix from a causalgraph
+	 */
+	//circ  = createCircuitMatrix(rec.causal);
+	//circ.printCirc();
+
+	/**
+	 * The circuitmatrix is used to generate the geometry
+	 * or
+	 * The causalgraph is used to generate the geometry
+	 */
+	geom.useBridge = true;
+	//geom.makeGeometryFromCircuit(circ);
+	rec.causal.equalizeConsideringCosts();
+	//rec.causal.computeLevels();
+
+	/**
+	 * Heuristics
+	 */
+	heuristicParam.init();
+	Point::heuristicParam = &heuristicParam;
+
+	/**
+	 * Boxworld
+	 */
+	boxworld2 boxworld;
+	boxworld.heuristicParam = &heuristicParam;
+
+	double aStateFail = atof(argv[3]);
+	double tGateFail = atof(argv[4]);
+
+	double yStateFail = atof(argv[5]);
+	double pGateFail = atof(argv[6]);
+
+	int schedulingType = atoi(argv[7]);
+
+	boxworld.currentConfig._pinScenario = PINSHORIZRIGHT;
+	boxworld.initGeomBoundingBox(-DELTA, (rec.causal.getRoots().size() + 1) * DELTA,
+			INT_MIN, INT_MAX,
+			-DELTA - 1, DELTA + 2);
+	boxworld.initScheduleGreedy(aStateFail, yStateFail, tGateFail, pGateFail);
+
+	/**
+	 * Prepare the iteration
+	 */
+	bfsState iterationState;
+	vector<int> rootInputs = rec.causal.getRoots();
+	iterationState.init(rootInputs);
+
+	rec.causal.stepwiseBfs(iterationState);
+
+	/**
+	 * Initialise connnectpins
+	 */
+	connectpins pinConnector;
+	//set the pointer to the rtree of boxworld
+	pinConnector.pathfinder.useBoxWorld(&boxworld);
+	vector<pinpair> toconn;
+
+	/**
+	 * The connections pool
+	 */
+	connectionManager connManager(&heuristicParam);
+
+	/*
+	 * There is something to draw or to schedule
+	 */
+	int counter = 0;
+//	long previousTimeCoordinate = -1;
+
+	greedyschedulercontrol schedControl;
+//	seqschedulercontrol schedControl;
+//	asapschedcontrol schedControl;
+//	alaptschedcontrol schedControl;
+
+	while(iterationState.isSomethingToDo())
+	{
+		counter++;
+
+		pinblockjournalentry currentJournalEntry;
+		currentJournalEntry.synthesisStepNumber = counter;
+
+		printf("************\n         STEP %d\n***********\n", counter);
+
+		/*
+		 * Schedule the required boxes
+		 */
+		bool scheduledNewBoxes = false;
+		bool sufficientBoxes = true;
+
+		/*
+		 * Each round of scheduling requires recalibration
+		 */
+		boxworld.setCalibration(true);
+
+
+		if(counter==1)
+		{
+			iterationState.setMinimumLevel(0);
+		}
+//		schedControl.updateControl(iterationState, heuristicParam, boxworld, connManager, ATYPE);
+		schedControl.updateControl(iterationState, heuristicParam, boxworld.currentConfig);
+
+//
+		if(schedControl.shouldTriggerScheduling())
+		{
+			printf("THIS STEP IS SCHEDULING %ld %ld\n", schedControl.getAssumedInputTimeCoordinate()/*, schedControl.getSchedulingRoundLength()*/);
+
+			scheduledNewBoxes = schedControl.shouldTriggerScheduling();
+		}
+
+//		schedControl.updateControl(iterationState, heuristicParam, boxworld, connManager);
+
+//		schedControl.updateControl(iterationState, heuristicParam, boxworld);
+
+//		schedControl.updateControl(iterationState, heuristicParam, boxworld, connManager);
+
+		if(schedControl.shouldTriggerScheduling())
+		{
+			printf("THIS STEP IS SCHEDULING @ %ld\n", schedControl.getAssumedInputTimeCoordinate()/*, schedControl.getSchedulingRoundLength()*/);
+		}
+
+
+		bool limitReached = false;
+		for(int boxType = 0; boxType < 2; boxType++)
+		{
+			/*
+			 * Check if there are previously successful boxes
+			 */
+			//FOR OTHER SCHEDS?
+//			int necessary = iterationState.toScheduleInputs[boxType].size();
+//			int available = connManager.getUnusedReservedNr(boxType);
+
+			//FOR SEQSCHED
+			int necessary = 30;
+			int available = 0;
+
+			printf("Greedy Schedule @ level%ld type%c exist%d nec%d \n",
+								iterationState.getRequiredMaximumInputLevel(),
+								boxType == ATYPE ? 'A' : 'Y',
+								/*available, necessary*/
+								connManager.getUnusedReservedNr(boxType), iterationState.toScheduleInputs[boxType].size());
+
+			//trigger
+			if(schedControl.shouldTriggerScheduling(boxType))
+			{
+				scheduledNewBoxes = true;
+
+				schedControl.cancelTrigger();
+
+				queue<int> greedyBoxPinIds = boxworld.greedyScheduleBoxes(schedControl.getBoxStartTimeCoordinate(), boxType, available, necessary);
+
+//				queue<int> greedyBoxPinIds = boxworld.computeScheduleCanonical(schedControl.getBoxStartTimeCoordinate(), rec.causal);//(schedControl.getBoxStartTimeCoordinate(), boxType, available, necessary);
+
+//				queue<int> greedyBoxPinIds = boxworld.computeScheduleALAPT(schedControl.getBoxStartTimeCoordinate(boxType), boxType, available, necessary);
+
+				/*
+				 * Reserve connections for the successful boxes
+				 */
+				while(greedyBoxPinIds.size() > 0)
+				{
+					int boxPinId = greedyBoxPinIds.front();
+
+					/*inside, skip if too many*/
+					/*in cazul asap .. addconnection nu merge*/
+					int stopStop = connManager.addConnection(/*is this parameter still used?*/boxType, boxworld.boxPins[boxPinId]);
+					if(stopStop == -1)
+					{
+						printf("1. limit reached\n");
+					}
+					greedyBoxPinIds.pop();
+				}
+			}
+
+			/*
+			 * Update sufficient
+			 */
+//			sufficientBoxes = sufficientBoxes && connManager.enoughReserved(boxType, necessary);
+			//always true
+			sufficientBoxes = true;
+		}
+
+		for(int boxType = 0; boxType < 2; boxType++)
+		{
+			/*
+			 * Consume connections for the inputs that need scheduling
+			 */
+			for(size_t i = 0; i<iterationState.toScheduleInputs[boxType].size(); i++)
+			{
+				int opId = iterationState.toScheduleInputs[boxType][i];
+
+				if(!connManager.assignOperationToConnection(opId, boxType))
+				{
+					printf("NO CONN AVAILABLE for type %d\n", boxType);
+					limitReached = true;
+					break;
+				}
+			}
+
+			if(limitReached)
+			{
+				break;
+			}
+		}
+		if(limitReached)
+		{
+			break;
+		}
+
+		/*
+		 * Are there sufficient successful boxes?
+		 */
+		if(!sufficientBoxes)
+		{
+			printf("Not sufficient successful boxes. Another scheduling round is required.\n");
+		}
+
+		/*
+		 * This is, for the moment, required only for the seqschedcontrol
+		 */
+//		if(scheduledNewBoxes)
+//		{
+////			rec.causal.updateLevelsAtValue(iterationState, iterationState.requiredMaximumInputLevel, achievedCost);
+//			rec.causal.updateLevelsAtValue(iterationState, iterationState.getMaximumInputLevel(), schedControl.getAchievedCost());
+//			rec.causal.equalizeConsideringCosts();
+//
+////			iterationState.requiredMaximumInputLevel = achievedCost;
+//
+//			printf("NEW COST %ld where prev%ld curr%ld box %ld\n",
+//					schedControl.getAchievedCost(), iterationState.getMaximumInputLevel(),
+//								iterationState.getRequiredMaximumInputLevel(),
+//									boxworld.greedyLevel.maxDepth);
+//		}
+
+//		/*
+//		 * Recalculate causal graph
+//		 */
+//		if(scheduledNewBoxes)
+//		{
+//			long achievedCost = heuristicParam.connectionBufferTimeLength/*HEURISTIC*/ + boxworld.getTimeWhenBoxesEnd();
+//			if(iterationState.requiredMaximumInputLevel < achievedCost)
+//			{
+//				/*
+//				 * Inputs (scheduled/unscheduled) are on the rightmost boundary of the circuit segment
+//				 * that will be drawn. It is fine to move them to have the minimum achievedCost.
+//				 */
+//				rec.causal.updateLevelsAtValue(iterationState, iterationState.requiredMaximumInputLevel, achievedCost);
+//				rec.causal.equalizeConsideringCosts();
+//
+//				iterationState.requiredMaximumInputLevel = achievedCost;
+//
+//				printf("NEW COST %ld where prev%ld curr%ld box %ld\n",
+//									achievedCost, iterationState.maximumInputLevel,
+//									iterationState.requiredMaximumInputLevel,
+//									boxworld.greedyLevel.maxDepth);
+//			}
+//		}
+
+		/*
+		 * Resize connection pool width
+		 * Width can increase or decrease
+		 */
+		if(scheduledNewBoxes)
+		{
+			int maxConn = connManager.getCurrentNumberOfConnections();
+			int max = maxConn * DELTA;
+			boxworld.setConnectionBoxWidth(max);
+
+			printf("Resize connection box to width %d\n", max);
+		}
+
+		/*
+		 * Form pairs of pool connections and circuit pins
+		 */
+		vector<pinpair> finaliseConn;
+		if(sufficientBoxes)
+		{
+			/*
+			 * Draw geometry until the inputs that were scheduled.
+			 * The inputs are not drawn in this iteration, but in the future one
+			 * The explanation is that after inputs are found (at level d1), the inputs could
+			 * need to be moved at a later level (d2). However, there may be other unscheduled
+			 * inputs at level d3 so that d1<d3<d2. Therefore, it seemed easier, to schedule as they come,
+			 * and draw as they result after the scheduling
+			 */
+			geom.makeGeometryFromCircuit(rec.causal, iterationState);
+
+			currentJournalEntry.operationType = "finalise";
+			bool executedOK = connManager.finaliseAssignedConnections(iterationState, geom.allpins.inputList, finaliseConn);
+			if(!executedOK)
+			{
+				/*
+				 * A pair was not possible
+				 */
+				printf("A PAIR FAILED\n");
+				break;
+			}
+			else
+			{
+				/*
+				 * The first pin is connection. The second pin is circuit.
+				 * Because circuit pins are drawn in a future step
+				 */
+				for(size_t i = 0; i < finaliseConn.size(); i++)
+				{
+					currentJournalEntry.blockPriority = i;
+
+					currentJournalEntry.blockType = WALKBLOCKED_GUIDE;
+					finaliseConn[i].getPinDetail(SOURCEPIN).
+							addPinBlock(0, CIRCUITDEPTH, heuristicParam.timeBeforePoolEnd, WALKBLOCKED_GUIDE, currentJournalEntry);
+
+					currentJournalEntry.blockType = WALKBLOCKED_OCCUPY;
+					finaliseConn[i].getPinDetail(DESTPIN).
+							addPinBlock(0, CIRCUITHEIGHT, 10, WALKBLOCKED_OCCUPY, currentJournalEntry);
+				}
+			}
+		}
+
+		currentJournalEntry.operationType = "connect and extend";
+
+		connManager.updateConnections(schedControl.getTimeWhenPoolEnds(), heuristicParam.connectionHeight, toconn);
+
+//		printf("  Extend %lu conn: assume@%ld -> PoolEnd@%ld, where minL@%ld, distRound@%ld, req@%ld, tbe@%d\n", toconn.size(),
+//				schedControl.getAssumedInputTimeCoordinate(), schedControl.getTimeWhenPoolEnds(),
+//				iterationState.getMinimumLevel(), schedControl.getSchedulingRoundLength(),
+//				iterationState.getRequiredMaximumInputLevel(), heuristicParam.timeBeforePoolEnd);
+
+		long maxHeightInDeltas = -1;
+		for(size_t i = 0; i < toconn.size(); i++)
+		{
+			long height = toconn[i].getPinDetail(SOURCEPIN).coord[CIRCUITHEIGHT] / DELTA;
+			if(maxHeightInDeltas < height)
+			{
+				maxHeightInDeltas = height;
+			}
+		}
+		maxHeightInDeltas += 3;/*to be sure*/
+
+		for(size_t i = 0; i < toconn.size(); i++)
+		{
+			/*
+			 * The first connection has lowest block priority
+			 */
+			currentJournalEntry.blockPriority = i;
+
+			if(!toconn[i].isColinear())
+			{
+				//points are not guaranteed colinear if a box is to be connected
+				//to the connections rail
+				currentJournalEntry.blockType = WALKBLOCKED_OCCUPY;
+				toconn[i].getPinDetail(SOURCEPIN).
+						addPinBlock(0, CIRCUITDEPTH, heuristicParam.connectionBufferTimeLength - 2/*3*/, WALKBLOCKED_OCCUPY, currentJournalEntry);//dubios
+				toconn[i].getPinDetail(DESTPIN).
+						addPinBlock(0, CIRCUITHEIGHT, -4, WALKBLOCKED_OCCUPY, currentJournalEntry);//ghid
+			}
+			else
+			{
+				currentJournalEntry.blockType = WALKBLOCKED_GUIDE;
+				toconn[i].getPinDetail(SOURCEPIN).
+						addPinBlock(0, CIRCUITDEPTH, 100 /*HEURISTIC block forever*/, WALKBLOCKED_GUIDE, currentJournalEntry);//ocupat viitor
+			}
+
+			currentJournalEntry.blockType = WALKBLOCKED_GUIDE;
+			toconn[i].getPinDetail(DESTPIN).
+					addPinBlock(0, CIRCUITDEPTH, 100 /*block forever*/, WALKBLOCKED_GUIDE, currentJournalEntry);//ocupat viitor
+
+			currentJournalEntry.blockType = WALKBLOCKED_OCCUPY;
+			toconn[i].getPinDetail(DESTPIN).
+					addPinBlock(0, CIRCUITHEIGHT, maxHeightInDeltas/*toconn.size() + heuristicParam.connectionBoxHeight*/, WALKBLOCKED_OCCUPY, currentJournalEntry);
+		}
+
+		printf("## Finalise %lu Extend %lu\n", finaliseConn.size(), toconn.size());
+
+		pinConnector.blockPins(toconn);
+
+		if(sufficientBoxes)
+		{
+			pinConnector.blockPins(finaliseConn);
+		}
+
+		/*
+		 * Extend the pool connections
+		 */
+		printf("Bring to Pool...\n");
+		if(!pinConnector.processPins(toconn, ASTAR))
+		{
+			/*
+			 * A connection was not possible
+			 */
+			printf("TO POOL: A CONNECTION FAILED\a\n");
+			break;
+		}
+
+		/*
+		 * Connections from pool to the circuit
+		 * These are performed only when sufficient boxes were scheduled
+		 */
+		if(sufficientBoxes)
+		{
+			/*
+			 * Block all connection pool pins with guides
+			 */
+			currentJournalEntry.operationType = "block_rail_before_finalise";
+//			printf("block_rail_before_finalise: ");
+			for(size_t connNr = 0; connNr < connManager.getCurrentNumberOfConnections(); connNr++)
+			{
+				//TODO: use pinpair<pindetails*>
+				/*
+				 * The connections in preRelease are the ones to be finalised
+				 * so do not block them
+				*/
+				bool willBeAvailable = false;
+				for(int boxType = 0; boxType < 2; boxType++)
+				{
+					bool exists = (connManager.pool.toBeAvailable[boxType].find(connNr) != connManager.pool.toBeAvailable[boxType].end());
+
+					willBeAvailable = willBeAvailable || exists;
+				}
+
+				if(!willBeAvailable)
+				{
+//						printf("b%lu, ", connNr);
+						/*aici nu are de-a face cu source si destination, ci cu cei doi pini ai pool-ului*/
+						currentJournalEntry.blockType = WALKBLOCKED_GUIDE;
+						currentJournalEntry.blockPriority = 999;
+						currentJournalEntry.poolConnectionNumber = connNr;
+
+						connManager.connectionPins[connNr].getPinDetail(DESTPIN).addPinBlock(0, CIRCUITDEPTH, 100, WALKBLOCKED_GUIDE, currentJournalEntry);
+						connManager.connectionPins[connNr].getPinDetail(SOURCEPIN).addPinBlock(0, CIRCUITDEPTH, 100, WALKBLOCKED_GUIDE, currentJournalEntry);
+				}
+				else
+				{
+//					printf("n%lu, ", connNr);
+				}
+			}
+			printf("\n");
+			pinConnector.blockPins(connManager.connectionPins);
+
+			/*
+			 * Compute
+			 */
+			printf("Get from pool...\n");
+//			Point::useSecondHeuristic = true;
+			if(!pinConnector.processPins(finaliseConn, ASTAR))
+			{
+				/*
+				 * A connection was not possible
+				 */
+				printf("FROM POOL: A CONNECTION FAILED\a\n");
+				break;
+			}
+//			Point::useSecondHeuristic = false;
+
+			/*Unblock all connection pool pins of guides*/
+			pinConnector.unblockPins(connManager.connectionPins);
+			for(size_t i = 0; i < connManager.connectionPins.size(); i++)
+			{
+				connManager.connectionPins[i].getPinDetail(0).removeBlocks();
+				connManager.connectionPins[i].getPinDetail(1).removeBlocks();
+			}
+		}
+
+		/*
+		 * Check which connections are free
+		 * Compute where the pins would be on the time axis using achievedCost
+		 */
+		connManager.releaseIfNotUsed(/*iterationState.requiredMaximumInputLevel*/
+				//connManager.getTimeWhenPoolEnds(iterationState),
+				schedControl.getTimeWhenPoolEnds(),
+				heuristicParam.connectionHeight,
+				pinConnector.pathfinder);
+
+		//previous versions of the software will not work
+		//because of toconnectfilewriter
+		finaliseConn.clear();
+		toconn.clear();
+
+		if(sufficientBoxes)
+		{
+			/*
+			 * Move to next level
+			 */
+			rec.causal.stepwiseBfs(iterationState);
+		}
+		else
+		{
+			/*
+			 * Advance the requiredLevel and let a new round of scheduling
+			 * be performed in the next iteration
+			 * correct?
+			 */
+//			long newReqLevel = iterationState.getRequiredMaximumInputLevel() + schedControl.getSchedulingRoundLength();
+//			iterationState.setRequiredMaximumInputLevel(newReqLevel, "notsufficientboxes");
+		}
+
+		printf("------\n");
+
+		if(counter == 2)
+		{
+//			cp.geom.segs.clear();
+//			break;
+		}
+		if(counter == 1)
+		{
+//			cp.geom.segs.clear();
+			break;
+		}
+
+		/*
+		 * Reset debug geometries
+		 */
+		pinConnector.debugBlockOccupyGeometry.reset();
+		pinConnector.debugBlockGuideGeometry.reset();
 	}
 
-	if(argc == 3)
-	{
-		distrounds = atoi(argv[2]);
-	}
+	/**
+	 * Generate plumbing pieces
+	 */
+	//ppgen.generateFromGeometry(geom.simplegeom);
+	//printf("%s, %d\n", argv[1], ppgen.pieces.size());
 
-	//open file
-	//readFile(argv[1]);
-	infilereader inr;
-	FILE* fin = fopen(argv[1], "r");
-	//a lot of copying
-	circ = circuitmatrix(inr.readInFile(fin));
-	fclose(fin);
+	/**
+	 * Write the generated geometry to a file
+	 */
+	string iofname = writeGeometry(argv);
 
-	extendCircuitWithColumns();
+	/**
+	 * DEBUGGING: Write the file for pin connections
+	 */
+	toconnectfilewriter tcwr;
+	string fnameConn = toconnectfilewriter::getToConnectFileName(iofname.c_str());
+	FILE* fileConn = fopen(fnameConn.c_str(), "w");
+	tcwr.writeToConnectFile(fileConn, toconn);
+	fclose(fileConn);
 
-	//printf("\n== Replace H\n");
-	replaceAllHs();
-	circ.printCirc();
+	/**
+	 * Write the scheduled boxes
+	 */
+	writeBoxSchedulerAndClearCoordList(boxworld, iofname.c_str(), 0);
 
-	convertCirc();
+	/**
+	 * Write the connections between the geometry and the boxes
+	 */
+	geomfilewriter geomwr;
+	string fname = geomfilewriter::getGeomFileName(fnameConn.c_str());
+	FILE* file = fopen(fname.c_str(), "w");
+	geomwr.writeGeomFile(file, pinConnector.connectionsGeometry.io, pinConnector.connectionsGeometry.segs, pinConnector.connectionsGeometry.coords);
+	fclose(file);
 
-	moveMeasurementsToRight();
-	tetrisColumns();
-	moveMeasurementsToLeft();
+	/**
+	 * Write the occupy blocks debug
+	 */
+	geomfilewriter geomwr2;
+	string fname2 = geomfilewriter::getGeomFileName(fnameConn.c_str());
+	fname2 += "debug1";
+	FILE* file2 = fopen(fname2.c_str(), "w");
+	geomwr2.writeGeomFile(file2, pinConnector.debugBlockOccupyGeometry.io, pinConnector.debugBlockOccupyGeometry.segs, pinConnector.debugBlockOccupyGeometry.coords);
+	fclose(file2);
 
-	circ.removeEmptyColumns();
-	circ.printCirc();
-	arrangeInputsAndOutputs();
-	circ.printCirc();
+	/**
+	 * Write the guide blocks debug
+	 */
+	geomfilewriter geomwr3;
+	string fname3 = geomfilewriter::getGeomFileName(fnameConn.c_str());
+	fname3 += "debug2";
+	FILE* file3 = fopen(fname3.c_str(), "w");
+	geomwr3.writeGeomFile(file3, pinConnector.debugBlockGuideGeometry.io, pinConnector.debugBlockGuideGeometry.segs, pinConnector.debugBlockGuideGeometry.coords);
+	fclose(file3);
 
-	geom.makeGeometryFromCircuit(circ);
+	//writeOtherFormats(argv[1]);
 
-	writeGeometry(argv);
-
-	writeOtherFormats(argv[1]);
-
-	return 1;
+	return 0;
 }
+
+
+/**
+ * JIT paper configuration
+ */
+//	//numara cate A si cate Y
+//	int nrA = 0;
+//	int nrY = 0;
+//	for(int i=0; i<convert.inputs.size(); i++)
+//	{
+//		if(convert.inputs[i] == 'a')
+//			nrA++;
+//		if(convert.inputs[i] == 'y')
+//			nrY++;
+//	}
+//	//ASAP
+//	model[0].gateTypeCosts['a'].gatecost = 1;
+//	model[0].gateTypeCosts['a'].wirecost = 0;
+//	model[0].gateTypeCosts['y'].gatecost = 1;
+//	model[0].gateTypeCosts['y'].wirecost = 0;
+//	model[0].gateTypeCosts['d'].gatecost = 1;//undeva tre sa fie 1, dar nu mai stiu de ce
+//	model[0].gateTypeCosts['d'].wirecost = 0;
+//
+//
+//	//ALAPT
+//	model[1].gateTypeCosts['a'].gatecost = 7 + 2;//10 + 2;
+//	model[1].gateTypeCosts['a'].wirecost = (15 + 2) * 5;//10 + 2;
+//	model[1].gateTypeCosts['y'].gatecost = 6 + 2;//5 + 2;
+//	model[1].gateTypeCosts['y'].wirecost = (7 + 2) * 5; //5 + 2;
+//	model[1].gateTypeCosts['d'].gatecost = 1;//undeva tre sa fie 1, dar nu mai stiu de ce
+//	model[1].gateTypeCosts['d'].wirecost = 0;
+//
+//	//ALAPR
+//	model[2].gateTypeCosts['a'].gatecost = (7 + 2) * 5;
+//	model[2].gateTypeCosts['a'].wirecost = 15 + 2;
+//	model[2].gateTypeCosts['y'].gatecost = (6 + 2) * 5;
+//	model[2].gateTypeCosts['y'].wirecost = (7 + 2);
+//	model[2].gateTypeCosts['d'].gatecost = 1;//undeva tre sa fie 1, dar nu mai stiu de ce
+//	model[2].gateTypeCosts['d'].wirecost = 0;
+
+//	printf("%s, %d, %d", argv[1], nrA, nrY);
+//	for(int i=0; i<3; i++)
+//	{
+//		wirerecycle rec;
+//		//circ = rec.recycle(convert, RECYCLEWIRESEQ, model);
+//		rec.recycle(convert, RECYCLENONE, model[i]);
+//
+//		vector<int> order = rec.causal.equalizeConsideringCosts();
+//		int mdepth = rec.causal.getMaxLevel() + 1;
+//		int height = rec.causal.getRoots().size() + + model[i].gateTypeCosts['a'].wirecost;
+//
+//		int bb = mdepth * height;
+//
+//		if(i==0)
+//		{
+//			computeadditional cp;
+//			int additionalA = cp.findParam(nrA, 0.2, 0.001);
+//			int additionalY =cp.findParam(nrY, 0.2, 0.001);
+//
+//			int totalA = additionalA * (15 + 2);
+//			int totalY = additionalY * (7 + 2);
+//			int total = totalA + totalY;
+//
+//			bb = total * mdepth;
+//
+//			height = total;
+//		}
+//
+//		printf(", %d, %d, %d", mdepth, height, bb);
+//	}
+//	printf("\n");
+	//circuitmatrix

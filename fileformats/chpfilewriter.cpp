@@ -15,20 +15,20 @@ void chpfilewriter::writeCHPFile(FILE* file, circuitmatrix& circ)
 	fprintf(file, "#\n");
 
 	//sunt toate liniile in circ de aceeasi lungime? banuiesc ca da...
-	for(int j=0; j<circ.at(0).size(); j++)
+	for(size_t j=0; j<circ.at(0).size(); j++)
 	{
-		for(int i=0; i<circ.size(); i++)
+		for(size_t i=0; i<circ.size(); i++)
 		{
 			if(j==0 && circ.at(i).at(j) == PLUS)
 			{
-				fprintf(file, "h %d\n", i);
+				fprintf(file, "h %lu\n", i);
 			}
 			if(cnotcounter::getCnotPart(circ.at(i).at(j)) == CTRL)
 			{
 				vector<int> targets = circ.findTarget(i,j);
-				for(int k=0; k<targets.size(); k++)
+				for(size_t k=0; k<targets.size(); k++)
 				{
-					fprintf(file, "c %d %d\n", i, targets.at(k));
+					fprintf(file, "c %lu %d\n", i, targets.at(k));
 				}
 			}
 

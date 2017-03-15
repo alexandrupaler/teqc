@@ -13,6 +13,6 @@ typedef vector<long> fileline;
 //ugly
 #define GATENUMBERSDB "headers/gatenumbers.h"
 
-#define DELTA 2
+#define DELTA 6
 
 #endif /* GENERALDEFINES_H_ */

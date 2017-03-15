@@ -35,7 +35,7 @@ public:
 	/**
 	 * @return the maximum number of columns used in the circuitmatrix representation of the decomposition
 	 */
-	int getMaxCols();
+	size_t getMaxCols();
 
 	/**
 	 * @return true if it is an ICM decomposition, false otherwise

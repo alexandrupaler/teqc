@@ -141,7 +141,7 @@ public:
 	 * @param positionWidthAxis required position on the width axis
 	 * @param positionHeightAxis will be updated by the method with the
 	 * found height axis position of the placed box
-	 * @return true if a box was succesfully placed, false otherwise
+	 * @return true if a box was successfully placed, false otherwise
 	 */
 	bool computeCoordinates(int reqWidth, int reqHeight, int positionWidthAxis, int& positionHeightAxis);
 

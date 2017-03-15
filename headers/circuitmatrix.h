@@ -32,6 +32,14 @@ public:
 	bool isOutput(int i, int j);
 
 	/**
+	 * Checks if at a given matrix coordinate the inputs are distillable injections
+	 * @param i matrix line (qubit)
+	 * @param j matrix columns (gate)
+	 * @return true if output, false otherwise
+	 */
+	bool isDistillationAncillaInput(int i, int j);
+
+	/**
 	 * Checks if at a given matrix coordinate the value represents an empty wire (no gate).
 	 * @param i matrix line (qubit)
 	 * @param j matrix columns (gate)
@@ -69,7 +77,7 @@ public:
 	 * @param index possible
 	 * @return true if length is longer, false otherwise
 	 */
-	bool indexLessThanSize(int i, int index);
+	bool indexLessThanSize(size_t i, size_t index);
 
 	/**
 	 * Returns a Boolean value indicating if the circuit uses injected states.
@@ -97,7 +105,7 @@ public:
 	 *
 	 * @return The maximum length of a qubit line in the circuit.
 	 */
-	int getMaxColumn();
+	size_t getMaxColumn();
 
 	/**
 	 *
@@ -141,23 +149,18 @@ public:
 	 * Equivalent to getNrLines()
 	 * @return
 	 */
-	int size(){return circ.size();};
+	size_t size(){return circ.size();};
+
+	/**
+	 * Checks if on a column there already exists a cnot
+	 */
+	bool checkForCnotOnColumn(int column);
 
 private:
 	/**
 	 * The circuit represented as a vector of lines, where each qubitline is a vector of integers.
 	 */
 	vector<qubitline> circ;
-
-	/**
-	 * The set of values that are interpreted as qubit measurements.
-	 */
-	set<int> measurements;
-
-	/**
-	 * The set of a values that are interpreted as qubit initialisations.
-	 */
-	set<int> initialisations;
 
 	/**
 	 * Method used for initialising class members.

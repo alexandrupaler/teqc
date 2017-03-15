@@ -1,78 +1,128 @@
-CC = g++
-CS = gcc
-INCLUDES = ./headers
-CFLAGS = -I$(INCLUDES) -lm -g #-m32 #-O3
+OBJDIR = obj
+BINDIR = bin
+INCLUDES = headers
 CXXFLAGS =$(CFLAGS) 
+
+CC = g++
+CFLAGS = -Wall -I$(INCLUDES) -lm -g
 
 export CPATH=$CPATH:$(INCLUDES)
 
-OUTPUT = convertft
-FILES = $(FILESDB) circuitmatrix.o numberandcoordinate.o geometry.o circuitgeometry.o \
-	fileformats/psfilewriter.o fileformats/qcircfilewriter.o \
-	fileformats/geomfilewriter.o fileformats/chpfilewriter.o \
-	fileformats/iofilewriter.o fileformats/boundingboxfilewriter.o \
-	fileformats/infilereader.o cnotcounter.o oldconvertft.o 
+$(OBJDIR)/%.o: %.cpp
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -c -o $@ $<
 
-OUTPUTDB = dbread
-FILESDB = decomposition.o databasereader.o
+$(OBJDIR):
+	@mkdir -p $@
+	
+$(BINDIR):
+	@mkdir -p $@
 
-OUTPUTB = boxworld
-FILESB = fileformats/boxcoordfilewriter.o fileformats/iofilereader.o fileformats/iofilewriter.o schedulerspace.o boxworld2.o computeadditional.o numberandcoordinate.o boxworld2_main.o
+OUTPUT = $(BINDIR)/convertft
+FILES = $(FILESDB) circuitmatrix.cpp numberandcoordinate.cpp geometry.cpp circuitgeometry.cpp \
+	$(wildcard fileformats/*.cpp) \
+	$(wildcard scheduling/*.cpp) \
+	$(wildcard astar/*.cpp) \
+	$(wildcard pins/*.cpp) \
+	$(wildcard recycling/*.cpp) \
+	oldconvertft.cpp \
+	gatenumbers.cpp cnotcounter.cpp cuccaro.cpp \
+	circconvert.cpp\
+	computeadditional.cpp plumbingpieces.cpp\
+	boxworld2.cpp faildistillations.cpp \
+	connectpins.cpp heuristicparameters.cpp \
+	bfsstate.cpp convertcoordinate.cpp\
+	connectionspool.cpp connectionmanager.cpp
+	
+#	fileformats/psfilewriter.cpp fileformats/qcircfilewriter.cpp \
+	fileformats/geomfilewriter.cpp fileformats/adamfilewriter.cpp fileformats/chpfilewriter.cpp \
+	fileformats/iofilewriter.cpp fileformats/boundingboxfilewriter.cpp \
+	fileformats/infilereader.cpp 
+	
+#fileformats/toconnectfilewriter.cpp fileformats/boxcoordfilewriter.cpp \
+	fileformats/iofilereader.cpp \
+	
+	
+#	causaltogeom.cpp \
+	
+OFILES = $(patsubst %.cpp, $(OBJDIR)/%.o, $(FILES))
+	
+OUTPUTDB = $(BINDIR)/dbread
+FILESDB = decomposition.cpp databasereader.cpp
+OFILESDB = $(patsubst %.cpp, $(OBJDIR)/%.o, $(FILESDB))
 
-OUTPUTF = faildistillations
-FILESF =  fileformats/toconnectfilewriter.o fileformats/iofilereader.o faildistillations.o numberandcoordinate.o faildistillations_main.o
+OUTPUTB = $(BINDIR)/boxworld
+FILESB = fileformats/toconnectfilewriter.cpp fileformats/boxcoordfilewriter.cpp \
+		fileformats/iofilereader.cpp fileformats/iofilewriter.cpp schedulerspace.cpp \
+		boxworld2.cpp computeadditional.cpp numberandcoordinate.cpp faildistillations.cpp \
+		fileformats/geomfilewriter.cpp connectpins.cpp geometry.cpp\
+		boxworld2_main.cpp astaralg.cpp astarpoint.cpp
+OFILESB = $(patsubst %.cpp, $(OBJDIR)/%.o, $(FILESB))
 
-OUTPUTP = processraw
-FILESP = $(FILESDB) cnotcounter.o  processraw.o fileformats/rawfilereader.o fileformats/infilewriter.o processraw_main.o
+OUTPUTF = $(BINDIR)/faildistillations
+FILESF =  fileformats/toconnectfilewriter.cpp fileformats/iofilereader.cpp \
+		faildistillations.cpp numberandcoordinate.cpp faildistillations_main.cpp
+OFILESF = $(patsubst %.cpp, $(OBJDIR)/%.o, $(FILESF))
 
-OUTPUTA = additional
-FILESA = additional.o computeadditional.o
+OUTPUTP = $(BINDIR)/processraw
+FILESP = $(FILESDB) cnotcounter.cpp  processraw.cpp fileformats/rawfilereader.cpp \
+		fileformats/infilewriter.cpp processraw_main.cpp
+OFILESP = $(patsubst %.cpp, $(OBJDIR)/%.o, $(FILESP))
 
-OUTPUTC = chp
-FILESC = chp.o
+OUTPUTA = $(BINDIR)/additional
+FILESA = additional.cpp computeadditional.cpp
+OFILESA = $(patsubst %.cpp, $(OBJDIR)/%.o, $(FILESA))
 
-OUTPUTCONN = connectpins
-FILESCONN = fileformats/geomfilewriter.o fileformats/iofilereader.o faildistillations.o numberandcoordinate.o geometry.o connectpins.o connectpinsmain.o
+OUTPUTC = $(BINDIR)/chp
+FILESC = chp.c
+OFILESC = $(patsubst %.cpp, $(OBJDIR)/%.o, $(FILESC))
 
+OUTPUTCONN = $(BINDIR)/connectpins
+FILESCONN = fileformats/geomfilewriter.cpp fileformats/iofilereader.cpp \
+	faildistillations.cpp numberandcoordinate.cpp geometry.cpp \
+	connectpins.cpp connectpinsmain.cpp astaralg.cpp astarpoint.cpp
+OFILESCONN = $(patsubst %.cpp, $(OBJDIR)/%.o, $(FILESCONN))
 
-all:: process convert boxworld additional faild connectpins
+#all:: process convert boxworld additional faild connectpins chp
+
+all:: convert
 
 test::
 	make -C geomtest
 
-additional:: $(FILESA)
-	$(CC) $(CFLAGS) $(FILESA) -o $(OUTPUTA)
+additional:: $(OFILESA) $(BINDIR)
+	$(CC) $(CFLAGS) $(OFILESA) -o $(OUTPUTA)
 	
-dbread:: $(FILESDB)
-	$(CC) $(CFLAGS) $(FILESDB) -o $(OUTPUTDB)
+dbread:: $(OFILESDB) $(BINDIR)
+	$(CC) $(CFLAGS) $(OFILESDB) -o $(OUTPUTDB)
 
-boxworld:: $(FILESB)
-	$(CC) $(CFLAGS) $(FILESB) -o $(OUTPUTB)
+boxworld:: $(OFILESB) $(BINDIR)
+	$(CC) $(CFLAGS) $(OFILESB) -o $(OUTPUTB)
 	
-faild:: $(FILESF)
-	$(CC) $(CFLAGS) $(FILESF) -o $(OUTPUTF)
+faild:: $(OFILESF) $(BINDIR)
+	$(CC) $(CFLAGS) $(OFILESF) -o $(OUTPUTF)
 
-convert:: $(FILES)
-	$(CC) $(CFLAGS) $(FILES) -o $(OUTPUT)
+convert:: $(OFILES) $(BINDIR)
+	$(CC) $(CFLAGS) $(OFILES) -o $(OUTPUT)
 	
-process:: $(FILESP)
-	$(CC)  $(CFLAGS) $(FILESP) -o $(OUTPUTP)
+process:: $(OFILESP) $(BINDIR)
+	$(CC)  $(CFLAGS) $(OFILESP) -o $(OUTPUTP)
 	
-chp:: $(FILESC)
-	$(CS)  $(FILESC) -o $(OUTPUTC)	
+chp:: $(OFILESC) $(BINDIR)
+	$(CS)  $(OFILESC) -o $(OUTPUTC)	
 	
-connectpins:: $(FILESCONN)
-	$(CC) $(CFLAGS) $(FILESCONN) -o $(OUTPUTCONN)	
+connectpins:: $(OFILESCONN) $(BINDIR)
+	$(CC) $(CFLAGS) $(OFILESCONN) -o $(OUTPUTCONN)	
 
-clean::
-	rm -f $(OUTPUT) $(FILES)
-	rm -f $(OUTPUTP) $(FILESP)
-	rm -f $(OUTPUTA) $(FILESA)
-	rm -f $(OUTPUTC) $(FILESC)
-	rm -f $(OUTPUTB) $(FILESB)
-	rm -f $(OUTPUTDB) $(FILESDB)
-	rm -f $(OUTPUTF) $(FILESF)
-	rm -f $(OUTPUTCONN) $(FILESCONN)
+#clean::
+#	rm -f $(OUTPUT) $(FILES)
+#	rm -f $(OUTPUTP) $(FILESP)
+#	rm -f $(OUTPUTA) $(FILESA)
+#	rm -f $(OUTPUTC) $(FILESC)
+#	rm -f $(OUTPUTB) $(FILESB)
+#	rm -f $(OUTPUTDB) $(FILESDB)
+#	rm -f $(OUTPUTF) $(FILESF)
+#	rm -f $(OUTPUTCONN) $(FILESCONN)
 
 ps::
 	cat templateh.ps test.ps templatec.ps > circ.ps

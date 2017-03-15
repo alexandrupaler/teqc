@@ -18,7 +18,7 @@ string boundingboxfilewriter::getBoundingBoxFileName(const char* basisfilename)
  * @param file
  * @param boundingbox
  */
-void boundingboxfilewriter::writeBoundingBoxFile(FILE* file, coordinate& boundingbox)
+void boundingboxfilewriter::writeBoundingBoxFile(FILE* file, convertcoordinate& boundingbox)
 {
 	fprintf(file, "%s\n", boundingbox.toString(',').c_str());
 }

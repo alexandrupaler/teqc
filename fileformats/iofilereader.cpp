@@ -7,7 +7,7 @@ numberandcoordinate iofilereader::readIOFile(FILE* file)
 	numberandcoordinate ret;
 
 	char type[1];
-	int line = 0;//for debug purposes
+//	int line = 0;//for debug purposes
 
 	while (!feof(file))
 	{
@@ -17,7 +17,7 @@ numberandcoordinate iofilereader::readIOFile(FILE* file)
 		if (feof(file))
 			break;
 
-		inputpin numberAndCoords;
+		pinpair numberAndCoords;
 		int itype = (type[TYPE] == 'A' ? 0 : 1);
 		numberAndCoords[TYPE] = itype;
 //		numberAndCoords.push_back(itype);

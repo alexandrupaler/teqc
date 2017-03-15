@@ -25,7 +25,7 @@ public:
 	 * @param segs a vector of index pairs referring to existing coordinates from the geometry
 	 * @param coords the vector of geometry vertices
 	 */
-	void writeGeomFile(FILE* f, vector<long>& io, vector<pair<long, long> >& segs, vector<coordinate>& coords);
+	void writeGeomFile(FILE* f, vector<long>& io, vector<pair<long, long> >& segs, vector<convertcoordinate>& coords);
 };
 
 

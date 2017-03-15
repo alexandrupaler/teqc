@@ -4,25 +4,55 @@
 #include <vector>
 #include <utility>
 #include <map>
+#include <queue>
 
 #include "fileformats/iofilereader.h"
 #include "computeadditional.h"
 #include "numberandcoordinate.h"
-#include "schedulerspace.h"
+#include "fileformats/generaldefines.h"
+#include "heuristicparameters.h"
+
+#include "faildistillations.h"
+#include "rtree/RStarTree.h"
+#include "recycling/causalgraph.h"
+
+#include "heuristicparameters.h"
 
 #define PINSVERTICAL 0
 #define PINSHORIZRIGHT 1
 #define PINSHORIZLEFT 2
 
-#define NOMIRROR 1
-#define MIRROR -1
+//#define LOGPLACING
 
-using namespace std;
-
-//inputpin has two coordinates, but I need only one
-//instead of constructing a new class, or making inputpin parameterisable
+//pinpair has two coordinates, but I need only one
+//instead of constructing a new class, or making pinpair parameterisable
 //I will just have to make sure, that only the first coordinate is used
-typedef inputpin boxcoord;
+typedef pinpair boxcoord;
+
+struct boxConfiguration
+{
+    int _pinScenario;
+    int _heightStepSize;
+
+    vector<vector<int> > boxSize;
+    vector<int> distBetweenBoxes;
+
+    boxConfiguration()
+    {
+    	_pinScenario = PINSVERTICAL;
+    	_heightStepSize = 0;
+
+    	boxSize.resize(2);
+    	int bsizetmp[] = {60, 60, 60, 30, 30, 30};
+		boxSize[0] = vector<int>(bsizetmp + 0, bsizetmp + 3);
+		boxSize[1] = vector<int>(bsizetmp + 3, bsizetmp + 6);
+
+		int distatmp[] = { DELTA, DELTA, DELTA };
+		distBetweenBoxes = vector<int>(distatmp + 0, distatmp + 4);
+    }
+
+    int getBoxTotalDimension(int boxType, int axis);
+};
 
 class twobbox
 {
@@ -32,7 +62,7 @@ public:
 	int minWidth;
 	int minHeight;
 
-	void updateBBox(coordinate& boxCoord, int type, vector<vector<int> >& boxSizes)
+	void updateBBox(convertcoordinate& boxCoord, int type, vector<vector<int> >& boxSizes)
 	{
 		if(maxHeight < boxCoord[CIRCUITHEIGHT] + boxSizes[type][CIRCUITHEIGHT])
 		{
@@ -59,167 +89,122 @@ public:
 		minWidth = INT_MAX;
 		minHeight = INT_MAX;
 	};
+
+	int getMinWidthDistance() { return minWidth - 1;}
+	int getMaxWidthDistance() { return maxWidth - 1;}
+	int getMinHeightDistance() { return minHeight - 1;}
+	int getMaxHeightDistance() { return maxHeight - 1;}
 };
 
 /**
  * A simple distillation box scheduler
  */
+
+struct schedulerLevelInfo
+{
+	long depth;
+	BoundingBox lastBounding;
+	long maxDepth;
+	int lastMoveIndex;
+
+	/**
+	 * The first box of the first round is placed at in the circuit
+	 * geometry. During calibration the box is moved out of the geometry
+	 * and the connection channel which encompasses it.
+	 */
+	bool calibration;
+
+	/**
+	 * The last type of scheduled boxes
+	 */
+	int lastScheduledBoxType;
+
+	double aStateFail;
+	double yStateFail;
+	double tGateFail;
+	double pGateFail;
+
+	int greedyAxis[4];
+	int greedyDirection[4];
+
+	int getMoveIndex(int offset);
+	int getDirection(int offset);
+	int getAxis(int offset);
+};
+
 class boxworld2
 {
 public:
-	/**
-	 * Computes the coordinates of the pins when layed out vertically.
-	 * @param nr the pin index
-	 * @param bindex the type of the distillation box
-	 * @param x the returned x coordinate
-	 * @param y the returned y coordinate
-	 * @param z the returned z coordinate
-	 */
-	void pinsVertical(int nr, int bindex, long& x, long& y, long& z);
+    boxworld2(char *iofile, char* boundingfile);
+    boxworld2();
 
-	/**
-	 * Computes the coordinates of the pins when layed out horizontally on the right of a box.
-	 * @param nr the pin index
-	 * @param bindex the type of the distillation box
-	 * @param x the returned x coordinate
-	 * @param y the returned y coordinate
-	 * @param z the returned z coordinate
-	 */
-	void pinsHorizontalRight(int nr, int bindex, long& x, long& y, long& z);
+    void pinsVertical(int nr, int bindex, long  & x, long  & y, long  & z);
+    void pinsHorizontalRight(int nr, int bindex, long  & x, long  & y, long  & z);
+    void pinsHorizontalLeft(int nr, int bindex, long  & x, long  & y, long  & z);
 
-	/**
-	 * Computes the coordinates of the pins when layed out horizontally on the left of a box.
-	 * @param nr the pin index
-	 * @param bindex the type of the distillation box
-	 * @param x the returned x coordinate
-	 * @param y the returned y coordinate
-	 * @param z the returned z coordinate
-	 */
-	void pinsHorizontalLeft(int nr, int bindex, long& x, long& y, long& z);
+    void saveBoxAndPinCoords(int nr, int bindex);
 
-	/**
-	 * Takes the current box coordinates, computes the pin coordinates and stores them.
-	 * @param bindex the type of the box
-	 */
-	void savePinCoord(int bindex/*, inputpin& circpins*/);
+    BoundingBox generateBounds(int x, int y, int z, int boxTypeIndex);
+//    BoundingBox generateBounds(convertcoordinate coord, int boxTypeIndex);
+    BoundingBox initNewBox(schedulerLevelInfo& level, int boxType);
 
-	/**
-	 * Takes the current box coordinates and stores them.
-	 * @param nr the number of the circuit input (see the geometry vertex indices)
-	 * @param bindex the type of the box
-	 */
-	void saveBoxCoord(int nr, int bindex);
+    twobbox computeBBox();
 
-	/**
-	 * Aftre computing a schedule, the box and pin coordinates are offset and stored in the final vectors.
-	 * @param offset the distances in each dimension for moving boxes and pins
-	 */
-	void pushTempInFinal(vector<int> offset);
+    bool canSlide(BoundingBox bBox, int axis, int direction);
+    bool overlapsConnectionChannel(BoundingBox bBox, int axis, int direction);
 
-	/**
-	 * Computes the bounding box of a distillation box schedule.
-	 * @return the two dimensional bounding box
-	 */
-	twobbox computeBBox();
+    bool overlappedAndWasSlided(BoundingBox& bBox, int axis, int direction);
+    void addBoxSlidingHeight(BoundingBox& bBox, int boxTypeIndex);
+    void addBoxSlidingDepth(BoundingBox& bBox, int boxTypeIndex);
+    void addBoxSlidingDepth2(BoundingBox& bBox, int boxTypeIndex);
 
-	/**
-	 * Adds a new box to an existing scheduler.
-	 * @param sp the volume representing the free spaces in the scheduler
-	 * @param bindex the type of the box to be added
-	 * @param circuitRow the coordinate on the ciruit width axis where the box should be placed
-	 * @return
-	 */
-	bool advance(schedulerspace& sp, int bindex, int circuitRow);
+    void placeAdditionalsAlongWidthAxis(int total, int boxType, int direction, int offset[3]);
+    void computeAdditionalATypeScheduler(long boxStartTimeCoordinate, int difStates);
+    void computeAdditionalYTypeScheduler(long boxStartTimeCoordinate, int difStates);
 
-	/**
-	 * Computes a distillation box schedule for the specified list of circuit inputs.
-	 */
-	void computeSchedule();
+    void switchLayoutConfig(int configNumber);
 
-	/**
-	 * If boxes are placed step wise using stepsize, the height of a box
-	 * will determine the maximum number of
-	 * boxes that can placed along the width axis.
-	 * @param type the type of the box to be added
-	 * @param stepsize the height axis coordinate increment between  two subsequent boxes
-	 * @return maximum number of possible boxes that can be placed
-	 */
-	int computeMaxNrBoxes(int type, int stepsize);
+    queue<int> computeScheduleCanonical(long boxStartTimeCoordinate, causalgraph& causal);
+    queue<int> computeScheduleALAPT(long boxStartTimeCoordinate, int boxType, int available, int necessary);
 
-	/**
-	 *
-	 * @param nrInitialStates
-	 * @param stateFail
-	 * @param gateFail
-	 * @param startCoord
-	 * @param stopCoord
-	 * @param type
-	 * @return
-	 */
-	int prepareAdditionalSingleTypeNandc(int nrInitialStates, double stateFail,
-			double gateFail, int startCoord, int stopCoord, int type);
+	int preSimulateFailuresInGreedy(queue<int>& boxPinIds, int totalToSim, int boxType, schedulerLevelInfo& greedyLevel);
 
-	/**
-	 * Constructor
-	 * @param iofile the file representing the circuit's inputs
-	 * @param bboxfile the file representing the circuit's geometry bounding box
-	 */
-	boxworld2(char* iofile, char* bboxfile);
+	void initGeomBoundingBox(long wf, long ws, long df, long ds, long hf, long hs);
+	void initScheduleGreedy(double aStateFail, double yStateFail, double tGateFail, double pGateFail);
+	queue<int> greedyScheduleBoxes(long boxStartTimeCoordinate, int boxType, int available, int necessary);
+
+	bool setConnectionBoxWidth(int totalWidth);
+	bool setConnectionBoxHeight(int totalHeight);
+
+	long getTimeWhenBoxesEnd();
 
 public:
-	/**
-	 * The layout of the distillation box pins.
-	 */
-	int _pinScenario;
+	faildistillations fd;
 
-	/**
-	 * After a distillation box was placed, its position on the height axis can be shifted.
-	 */
-	int _heightStepSize;
+    convertcoordinate currBoxCoords;
 
-	/**
-	 * The position of a distillation box can be mirrored. Possible values 1 (no mirror) and -1 (mirror).
-	 */
-	int _mirrorAboutCircuitWidthAxis;
+    vector<boxcoord> boxCoords;
+    vector<pinpair> boxPins;
 
-	/**
-	 * The distillation box sizes.
-	 */
-	vector<vector<int> > boxSize;
+    //this is not used in the greedy scheduler
+    numberandcoordinate nandc;
 
-	/**
-	 * The coordinates computed after each call of advance()
-	 */
-	coordinate currBoxCoords;
+    boxConfiguration currentConfig;
 
-	/**
-	 * The distances between the scheduled boxes. These are expected to be in DELTA increments.
-	 */
-	vector<int>  distBetweenBoxes; //totul este in increment de 2, deoarece sunt coordonate de celule primare/duale
+    RTree rtree;
+    BoundingBox geomBoundingBox;
+    BoundingBox connectionsBox;
 
-	/**
-	 * The final vector containing distillation box coordinates.
-	 */
-	vector<boxcoord> boxCoords;
+    //objects used by greedy scheduling
+	schedulerLevelInfo greedyLevel;
 
-	/**
-	 * The final vector containing the pins of all the distillation boxes.
-	 */
-	vector<inputpin> boxPins;
+	heuristicparameters* heuristicParam;
 
-	/**
-	 * Before calling pushTempInFinal(), the computed box coordinates are stored here.
-	 */
-	vector<boxcoord> tempBoxCoords;
+	void setCalibration(bool value);
 
-	/**
-	 * Before calling pushTempInFinal(), the computed box pin coordinates are stored here.
-	 */
-	vector<inputpin> tempBoxPins;
-
-	/**
-	 * A list of circuit inputs for which a schedule of distillation boxes has to be computed.
-	 */
-	numberandcoordinate nandc;
+private:
+    void init();
+	void placeBoxesInGreedy(long boxStartTimeCoordinate /*bfsState& state*/, int& boxType, int nrBoxesToAdd);
 };
+
 #endif /* BOXWORLD_H_ */

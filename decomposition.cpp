@@ -34,13 +34,13 @@ void decomposition::toString()
 	printf("name: %s\n", name.c_str());
 }
 
-int decomposition::getMaxCols()
+size_t decomposition::getMaxCols()
 {
-	int max = 0;
+	size_t max = 0;
 
 	if(!isicm())
 	{
-		for(int i=0; i<gates.size(); i++)
+		for(size_t i=0; i < gates.size(); i++)
 		{
 			if (max < gates[i].size())
 			{
