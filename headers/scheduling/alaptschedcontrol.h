@@ -1,7 +1,7 @@
 #ifndef ALAPTSCHEDCONTROL_H_
 #define ALAPTSCHEDCONTROL_H_
 
-#include "bfsstate.h"
+#include "recycling/bfsstate.h"
 #include "heuristicparameters.h"
 #include "boxworld2.h"
 #include "connectionmanager.h"

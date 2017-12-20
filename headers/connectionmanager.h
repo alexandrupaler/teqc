@@ -6,18 +6,16 @@
 #include "heuristicparameters.h"
 #include "connectionspool.h"
 #include "numberandcoordinate.h"
-#include "bfsstate.h"
+#include "recycling/bfsstate.h"
 #include "astar/astaralg.h"
-
-using namespace std;
 
 struct connectionManager
 {
 	connectionsPool pool;
 
-	vector<pinpair> connectionPins;
+	std::vector<pinpair> connectionPins;
 
-	map<int, int> assignedIdToConnection;
+	std::map<int, int> assignedIdToConnection;
 
 	heuristicparameters* heuristic;
 
@@ -29,15 +27,15 @@ struct connectionManager
 
 	bool assignOperationToConnection(int operationId, int boxType);
 
-	void removeConnections(int boxType, vector<int>& operationId);
+	void removeConnections(int boxType, std::vector<int>& operationId);
 
-	void updateConnections(long timeWhenPoolEnds, long height, vector<pinpair>& toconn);
+	void updateConnections(long timeWhenPoolEnds, long height, std::vector<pinpair>& toconn);
 
 	void releaseIfNotUsed(long inputTimeCoordinate, long connectionPinHeight, Pathfinder& pathfinder);
 
-	bool finaliseAssignedConnections(bfsState& state, vector<pinpair>& circPins, vector<pinpair>& toconn);
+	bool finaliseAssignedConnections(bfsState& state, std::vector<pinpair>& circPins, std::vector<pinpair>& toconn);
 
-	vector<pinpair> formPairs(pinpair& source, pinpair& destination);
+	std::vector<pinpair> formPairs(pinpair& source, pinpair& destination);
 
 	int getUnusedReservedNr(int boxType);
 

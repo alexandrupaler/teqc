@@ -5,15 +5,13 @@
 #include <set>
 #include "fileformats/generaldefines.h"
 
-using namespace std;
-
 /**
  * Representation of a quantum circuit as a matrix of integer values.
  */
 class circuitmatrix {
 public:
 	circuitmatrix();
-	circuitmatrix(vector<qubitline> orig);
+	circuitmatrix(std::vector<qubitline> orig);
 
 	/**
 	 * Checks if at a given matrix coordinate the value represents an input.
@@ -91,7 +89,7 @@ public:
 	 * @param j the column of the control
 	 * @return vector of lines where control are founds (multiple control CNOTs are possible)
 	 */
-	vector<int> findTarget(int i, int j);
+	std::vector<int> findTarget(int i, int j);
 
 	/**
 	 * Searches in the circuit for the controls of a given CNOT specified by the coordinates of the target
@@ -99,7 +97,7 @@ public:
 	 * @param j the column of the target
 	 * @return vector of lines where targets are founds (multiple target CNOTs are possible)
 	 */
-	vector<int> findControl(int i, int j);
+	std::vector<int> findControl(int i, int j);
 
 	/**
 	 *
@@ -133,7 +131,7 @@ public:
 	 * @param beforePosition index of the line before which lines are introduced
 	 * @param rows a vector of qubits to be introduced
 	 */
-	void insertRows(int beforePosition, vector<qubitline>& rows);
+	void insertRows(int beforePosition, std::vector<qubitline>& rows);
 
 	/**
 	 * Inserts additional columns (empty cells representing no gates) on each circuit line
@@ -160,7 +158,7 @@ private:
 	/**
 	 * The circuit represented as a vector of lines, where each qubitline is a vector of integers.
 	 */
-	vector<qubitline> circ;
+	std::vector<qubitline> circ;
 
 	/**
 	 * Method used for initialising class members.

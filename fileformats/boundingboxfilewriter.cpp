@@ -6,9 +6,9 @@
 /**
  * Uses the extension ".bounding"
  */
-string boundingboxfilewriter::getBoundingBoxFileName(const char* basisfilename)
+std::string boundingboxfilewriter::getBoundingBoxFileName(const char* basisfilename)
 {
-	string ret(basisfilename);
+	std::string ret(basisfilename);
 	ret += ".bounding";
 	return ret;
 }

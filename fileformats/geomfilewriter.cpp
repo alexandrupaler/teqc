@@ -6,9 +6,9 @@
 /**
  * Uses the ".geom" extension
  */
-string geomfilewriter::getGeomFileName(const char* basisfilename)
+std::string geomfilewriter::getGeomFileName(const char* basisfilename)
 {
-	string ret(basisfilename);
+	std::string ret(basisfilename);
 	ret += ".geom";
 	return ret;
 }
@@ -28,7 +28,9 @@ string geomfilewriter::getGeomFileName(const char* basisfilename)
  *	-# the inputs and the outputs have names, but the writer uses their indices for this purpose
  *	each line is of the form "index,name"
  */
-void geomfilewriter::writeGeomFile(FILE* f, vector<long>& io, vector<pair<long, long> >& segs, vector<convertcoordinate>& coords)
+void geomfilewriter::writeGeomFile(FILE* f, std::vector<long>& io,
+		std::vector<std::pair<long, long> >& segs,
+		std::vector<convertcoordinate>& coords)
 {
 	fprintf(f, "%d\n", (int)io.size());
 	fprintf(f, "%d\n", (int)segs.size());

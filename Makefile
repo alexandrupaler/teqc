@@ -31,7 +31,7 @@ FILES = $(FILESDB) circuitmatrix.cpp numberandcoordinate.cpp geometry.cpp circui
 	computeadditional.cpp plumbingpieces.cpp\
 	boxworld2.cpp faildistillations.cpp \
 	connectpins.cpp heuristicparameters.cpp \
-	bfsstate.cpp convertcoordinate.cpp\
+	convertcoordinate.cpp\
 	connectionspool.cpp connectionmanager.cpp
 	
 #	fileformats/psfilewriter.cpp fileformats/qcircfilewriter.cpp \

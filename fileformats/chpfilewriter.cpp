@@ -3,9 +3,9 @@
 #include "gatenumbers.h"
 #include <cnotcounter.h>
 
-string chpfilewriter::getCHPFileName(const char* basisfilename)
+std::string chpfilewriter::getCHPFileName(const char* basisfilename)
 {
-	string ret(basisfilename);
+	std::string ret(basisfilename);
 	ret += ".chp";
 	return ret;
 }
@@ -25,7 +25,7 @@ void chpfilewriter::writeCHPFile(FILE* file, circuitmatrix& circ)
 			}
 			if(cnotcounter::getCnotPart(circ.at(i).at(j)) == CTRL)
 			{
-				vector<int> targets = circ.findTarget(i,j);
+				std::vector<int> targets = circ.findTarget(i,j);
 				for(size_t k=0; k<targets.size(); k++)
 				{
 					fprintf(file, "c %lu %d\n", i, targets.at(k));

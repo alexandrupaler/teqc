@@ -34,38 +34,29 @@
 #define RECYCLESEARCH 1
 #define RECYCLENONE 2
 
-using namespace std;
+class wirerecycle
+{
+protected:
+	std::map<size_t, recyclegate*> allReachableAncillaOutputs;
 
-class wirerecycle{
+	std::map<recyclegate*, std::set<recyclegate*> > perInputReachedOutputs;
+
+	void initialiseSimQueue(causalgraph& causal);
+
+	void updateSimQueue(causalgraph& causal, recyclegate* outputId, recyclegate* inputId /*std::set<recyclegate*>& receivedOutputs*/);
+
+//	std::vector<std::vector<int> > sortInputsForICM(causalgraph& causal);
+
+	recyclegate* chooseClosestAncillaOutputWire(recyclegate* inputId, bool preferLowNumberedWires);
+
+	int recycleUsingWireSequence(causalgraph& causal);
+
+//	std::vector<std::vector<int> > extractSortedInputsList(causalgraph& causal);
+
+//	void renameWires(causalgraph& causal, std::vector<std::vector<int> >& remainingIns);
 
 public:
-	causalgraph causal;
-
-	set<int> allReachableAncillaOutputs;
-
-	map<int, set<int> > perInputReachedOutputs;
-
-	void writeGMLFile(const char* fname);
-
-	void initialiseSimQueue();
-
-	void updateSimQueue(int outputId, set<int>& receivedOutputs);
-
-	vector<vector<int> > sortInputsForICM();
-
-	vector<vector<int> > sortInputs();
-
-	int chooseClosestAncillaOutputWire(int inputId, bool preferLowNumberedWires);
-
-	void outputGraph(int& nrConnect);
-
-	int recycleUsingWireSequence();
-
-	vector<vector<int> > extractSortedInputsList();
-
-	void renameWires(vector<vector<int> >& remainingIns);
-
-	void recycle(circconvert& convert, int recycleMethod, costmodel& model);
+	void recycle(causalgraph& causal, int recycleMethod);
 };
 
 

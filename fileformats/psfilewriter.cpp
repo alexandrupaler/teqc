@@ -2,9 +2,9 @@
 #include "gatenumbers.h"
 #include "cnotcounter.h"
 
-string psfilewriter::getPostScriptFileName(const char* basisfilename)
+std::string psfilewriter::getPostScriptFileName(const char* basisfilename)
 {
-	string ret(basisfilename);
+	std::string ret(basisfilename);
 	ret += ".ps";
 	return ret;
 }
@@ -31,7 +31,9 @@ void psfilewriter::writePostScriptFile(FILE* pFile, circuitmatrix& circ)
 		{
 			int cmd = circ.at(i).at(j);
 			if(cnotcounter::isCnot(cmd))
+			{
 				cmd = cnotcounter::getCnotPart(cmd);
+			}
 
 			//if(j==0)
 			//if(initialisations.find(cmd) != initialisations.end())
@@ -98,14 +100,14 @@ void psfilewriter::writePostScriptFile(FILE* pFile, circuitmatrix& circ)
 			}
 			else if(cmd == CTRL)
 			{
-				vector<int> targets = circ.findTarget(i,j);
+				std::vector<int> targets = circ.findTarget(i,j);
 				fprintf(pFile, "control ");
 
 				//search maxpos and maxneg
 				int maxpos = 0;
 				int maxneg = 0;
 
-				for(vector<int>::iterator it=targets.begin(); it!=targets.end(); it++)
+				for(std::vector<int>::iterator it=targets.begin(); it!=targets.end(); it++)
 				{
 					int dist = *it - i;
 					if(dist < 0 && dist < maxneg)

@@ -1,7 +1,7 @@
 #ifndef ASAPSCHEDCONTROL_H_
 #define ASAPSCHEDCONTROL_H_
 
-#include "bfsstate.h"
+#include "recycling/bfsstate.h"
 #include "heuristicparameters.h"
 #include "boxworld2.h"
 #include "connectionmanager.h"

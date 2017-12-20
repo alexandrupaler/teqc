@@ -17,7 +17,7 @@ void pindetails::addPinBlock(int offset, int direction, int distance, int blockT
 
 void pindetails::removeBlocks()
 {
-	for(vector<pinblocker>::iterator it = blocks.begin();
+	for(std::vector<pinblocker>::iterator it = blocks.begin();
 			it != blocks.end(); it++)
 	{
 		//reuse this id

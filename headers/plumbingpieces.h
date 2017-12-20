@@ -8,8 +8,6 @@
 #include <string>
 #include <map>
 
-using namespace std;
-
 class plumbingpiece
 {
 public:
@@ -21,7 +19,7 @@ public:
 
 	plumbingpiece();
 
-	string toString();
+	std::string toString();
 
 	void setMask(bool isPrimal, unsigned int mask);
 };
@@ -34,9 +32,9 @@ public:
 	 * The map uses a serialised version of the segments as key for
 	 * retrieving their index from the segments collection.
 	 */
-	map<string, long> plumbMap;
+	std::map<std::string, long> plumbMap;
 
-	vector<plumbingpiece> pieces;
+	std::vector<plumbingpiece> pieces;
 
 	void generateFromGeometry(geometry& geom);
 

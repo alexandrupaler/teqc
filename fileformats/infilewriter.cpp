@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "fileformats/infilewriter.h"
 
-void infilewriter::writeInFile(FILE* file, vector<qubitline>& circuit)
+void infilewriter::writeInFile(FILE* file, std::vector<qubitline>& circuit)
 {
 	fprintf(file, "%d\n", (int) circuit.size());
 	fprintf(file, "%d\n", (int) circuit.at(0).size());
@@ -16,9 +16,9 @@ void infilewriter::writeInFile(FILE* file, vector<qubitline>& circuit)
 	}
 }
 
-string infilewriter::getInFileName(const char* basisfilename)
+std::string infilewriter::getInFileName(const char* basisfilename)
 {
-	string ret(basisfilename);
+	std::string ret(basisfilename);
 	ret += ".in";
 	return ret;
 }

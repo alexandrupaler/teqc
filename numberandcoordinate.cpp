@@ -5,11 +5,9 @@
 #include "numberandcoordinate.h"
 #include "convertcoordinate.h"
 
-using namespace std;
-
 void numberandcoordinate::sortEntries()
 {
-	sort(inputList.begin(), inputList.end(), numberandcoordinate::compareWidthCooord);
+	std::sort(inputList.begin(), inputList.end(), numberandcoordinate::compareWidthCooord);
 }
 
 void numberandcoordinate::addEntry(pinpair& numberAndCoords)

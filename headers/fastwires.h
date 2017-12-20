@@ -5,8 +5,6 @@
 #include <string>
 #include "wiredouble.h"
 
-using namespace std;
-
 class fastwires
 {
 public:

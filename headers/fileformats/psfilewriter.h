@@ -5,12 +5,10 @@
 #include <string>
 #include "circuitmatrix.h"
 
-using namespace std;
-
 class psfilewriter{
 public:
 	void writePostScriptFile(FILE* file, circuitmatrix& circ);
-	static string getPostScriptFileName(const char* basisfilename);
+	static std::string getPostScriptFileName(const char* basisfilename);
 protected:
 	void appendFile(FILE* destFile, const char* name);
 };

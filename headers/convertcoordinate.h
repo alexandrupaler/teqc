@@ -9,8 +9,6 @@
 #include <string>
 #include <climits>
 
-using namespace std;
-
 /**
  * A class used for storing three dimensional coordinates
  */
@@ -40,7 +38,7 @@ public:
 	 * Note: I am mixing the printing of coordinates: sometimes I use direct access, sometimes the toString
 	 * in the future I may move completely away from toString
 	 */
-	string toString(char separator);
+	std::string toString(char separator);
 
 	bool isPrimalCenter(int val);
 
@@ -57,7 +55,7 @@ public:
 	void reset();
 
 private:
-	vector<long> values;
+	std::vector<long> values;
 };
 
 

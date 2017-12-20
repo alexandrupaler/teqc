@@ -10,8 +10,7 @@
 #include "boxworld2.h"
 #include "rtree/RStarTree.h"
 #include "astar/astaralg.h"
-
-using namespace std;
+#include "recycling/graphanalysis.h"
 
 #define NORMALTYPE -1
 
@@ -112,7 +111,7 @@ twobbox boxworld2::computeBBox()
 {
 	twobbox ret;
 
-	for(vector<boxcoord>::iterator it = boxCoords.begin(); it != boxCoords.end(); it++)
+	for(std::vector<boxcoord>::iterator it = boxCoords.begin(); it != boxCoords.end(); it++)
 	{
 		convertcoordinate c = it->getPinDetail(0).coord;
 		ret.updateBBox(c, (*it)[TYPE], currentConfig.boxSize);
@@ -231,12 +230,12 @@ void boxworld2::computeAdditionalYTypeScheduler(long boxStartTimeCoordinate, int
 	placeAdditionalsAlongWidthAxis(difStates, YTYPE, 1, offset);
 }
 
-queue<int> boxworld2::computeScheduleCanonical(long boxStartTimeCoordinate, causalgraph& causal /*vector<pinpair>& toconn*/)
+std::queue<int> boxworld2::computeScheduleCanonical(long boxStartTimeCoordinate, causalgraph& causal /*vector<pinpair>& toconn*/)
 {
 	long offset[] = {0, -5 * DELTA, 8 * DELTA};
 
-	int nrA = causal.getTotalAStates();
-	int nrY = causal.getTotalYStates();
+	int nrA = graphanalysis::getTotalAStates(causal);
+	int nrY = graphanalysis::getTotalYStates(causal);
 
 	computeadditional cp;
 	int maxAStates = cp.findParam(nrA, greedyLevel.aStateFail, greedyLevel.tGateFail);
@@ -245,20 +244,20 @@ queue<int> boxworld2::computeScheduleCanonical(long boxStartTimeCoordinate, caus
 	int maxYStates = cp.findParam(nrY, greedyLevel.yStateFail, greedyLevel.pGateFail);
 	int difYStates = maxYStates - nrY;
 
-	vector<vector<int> > injectionTypeAndRow = causal.getTypesAndWiresOfInjections();
+	std::vector<std::vector<int> > injectionTypeAndRow = graphanalysis::getTypesAndWiresOfInjections(causal);
 
-	queue<int> successfulABoxIds;
+	std::queue<int> successfulABoxIds;
 	preSimulateFailuresInGreedy(successfulABoxIds, difAStates, ATYPE, greedyLevel);
 
-	queue<int> successfulYBoxIds;
+	std::queue<int> successfulYBoxIds;
 	preSimulateFailuresInGreedy(successfulYBoxIds, difYStates, YTYPE, greedyLevel);
 
-	queue<int> greedyBoxPinIds;
+	std::queue<int> greedyBoxPinIds;
 	/*
 	 * Place the schedules
 	 */
 	switchLayoutConfig(NORMALTYPE);
-	for (vector<vector<int> >::iterator it = injectionTypeAndRow.begin(); it != injectionTypeAndRow.end(); it++)
+	for (std::vector<std::vector<int> >::iterator it = injectionTypeAndRow.begin(); it != injectionTypeAndRow.end(); it++)
 	{
 		int boxType = (*it)[0];
 		int circuitRow = (*it)[1]; //row as coordinate of the injection point
@@ -407,7 +406,7 @@ BoundingBox boxworld2::initNewBox(schedulerLevelInfo& level, int boxType)
 	return startBox;
 }
 
-int boxworld2::preSimulateFailuresInGreedy(queue<int>& boxPinIds, int totalToSim, int boxType, schedulerLevelInfo& greedyLevel)
+int boxworld2::preSimulateFailuresInGreedy(std::queue<int>& boxPinIds, int totalToSim, int boxType, schedulerLevelInfo& greedyLevel)
 {
 	double prob = (boxType == ATYPE ? greedyLevel.aStateFail : greedyLevel.yStateFail);
 	int nrsucc = 0;
@@ -709,9 +708,9 @@ void boxworld2::placeBoxesInGreedy(long reqLevelDepth /*circuitInputTimeDepth*/,
 #endif
 }
 
-queue<int> boxworld2::greedyScheduleBoxes(long boxStartTimeCoordinate, int boxType, int available, int necessary)
+std::queue<int> boxworld2::greedyScheduleBoxes(long boxStartTimeCoordinate, int boxType, int available, int necessary)
 {
-	queue<int> greedyBoxPinIds;
+	std::queue<int> greedyBoxPinIds;
 
 	computeadditional ca;
 
@@ -737,9 +736,9 @@ queue<int> boxworld2::greedyScheduleBoxes(long boxStartTimeCoordinate, int boxTy
 	return greedyBoxPinIds;
 }
 
-queue<int> boxworld2::computeScheduleALAPT(long boxStartTimeCoordinate, int boxType, int available, int necessary)
+std::queue<int> boxworld2::computeScheduleALAPT(long boxStartTimeCoordinate, int boxType, int available, int necessary)
 {
-	queue<int> ret;
+	std::queue<int> ret;
 
 	boxConfiguration initialBoxes = currentConfig;
 

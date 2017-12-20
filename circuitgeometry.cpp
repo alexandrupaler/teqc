@@ -117,10 +117,10 @@ int circuitgeometry::liAddIOPoint2(int wire)
     return ioIndex;
 }
 
-void circuitgeometry::makeGeometryFromCircuit(causalgraph& causal, bfsState& state)
+void circuitgeometry::makeGeometryFromCircuit(bfsState& state)
 {
 //	TODO: Is this constantly needed?
-	lastIndex.resize(state.nrLines);
+	lastIndex.resize(state.getNrLines());
 	for(size_t i=0; i<lastIndex.size(); i++)
 	{
 		lastIndex[i].resize(4);
@@ -128,15 +128,16 @@ void circuitgeometry::makeGeometryFromCircuit(causalgraph& causal, bfsState& sta
 
 	lastDualIndices.resize(4);
 
-	for(vector<int>::iterator it = state.toDraw.begin(); it != state.toDraw.end(); it++)
+	for(std::vector<recyclegate*>::iterator it = state.toDraw.begin();
+			it != state.toDraw.end(); it++)
 	{
-		bool isInit = causal.circuit[*it].isInitialisation();
-		bool isMeasure = causal.circuit[*it].isMeasurement();
-		bool isControl = causal.circuit[*it].isGate();//in mod normal doar CNOT poate fi din cauza de ICM. TODO: verifica
+		bool isInit = (*it)->isInitialisation();
+		bool isMeasure = (*it)->isMeasurement();
+		bool isControl = (*it)->isGate();//in mod normal doar CNOT poate fi din cauza de ICM. TODO: verifica
 
-		int level = causal.circuit[*it].level;
+		int level = (*it)->level;
 
-		int wire = causal.circuit[*it].wires[0];
+		int wire = (*it)->wirePointers[0]->number;
 
 		//initialise the CURR points
 		//and update them according to their meaning
@@ -177,7 +178,7 @@ void circuitgeometry::makeGeometryFromCircuit(causalgraph& causal, bfsState& sta
 			}
 
 			//if(circuitHasInjections && paramCirc.isInput(wire, level))
-			if(causal.circuit[*it].isInput())
+			if((*it)->isInput())
 			{
 				liAddAxisOffset(wire, CURR1, CIRCUITDEPTH, -25*DELTA);
 				liAddAxisOffset(wire, CURR2, CIRCUITDEPTH, -25*DELTA);
@@ -191,11 +192,13 @@ void circuitgeometry::makeGeometryFromCircuit(causalgraph& causal, bfsState& sta
 
 				int ioIndex = liAddIOPoint2(wire);
 
-				if(causal.circuit[*it].type == AA || causal.circuit[*it].type == YY)
+				if((*it)->type == AA || (*it)->type == YY)
 				{
-					liAddPinPair(wire, ioIndex, causal.circuit[*it].type == AA ? ATYPE : YTYPE);
+					liAddPinPair(wire, ioIndex, (*it)->type == AA ? ATYPE : YTYPE);
 
-					state.operationIdToCircuitPinIndex[*it] = allpins.size() - 1;
+//					state.operationIdToCircuitPinIndex[*it] = allpins.size() - 1;
+
+					state.operationIdToCircuitPinIndex[(*it)->getId()] = allpins.size() - 1;
 				}
 				else
 				{
@@ -213,15 +216,20 @@ void circuitgeometry::makeGeometryFromCircuit(causalgraph& causal, bfsState& sta
 
 		if(isControl)
 		{
-			addDual(causal, *it);
+			addDual(*it);
 		}
 	}
 }
 
-void circuitgeometry::addDual(causalgraph& causal, int opid)
+void circuitgeometry::addDual(recyclegate* operationPtr)
 {
-	vector<int> targets = causal.circuit[opid].wires;
-	int level = causal.circuit[opid].level;
+	std::vector<int> targets;
+	for(std::vector<wireelement*>::iterator it = operationPtr->wirePointers.begin();
+			it != operationPtr->wirePointers.end(); it++)
+	{
+		targets.push_back((*it)->number);
+	}
+	int level = operationPtr->level;
 	int wire = targets[0];
 
 	std::sort(targets.begin(), targets.end());

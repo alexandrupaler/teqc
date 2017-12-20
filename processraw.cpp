@@ -9,8 +9,6 @@
 #include "fileformats/rawfilereader.h"
 #include "fileformats/infilewriter.h"
 
-using namespace std;
-
 processraw::processraw(rawdata& rw)
 {
 	//update nrGates to reflect the decomposition of the Toffoli
@@ -29,7 +27,7 @@ processraw::processraw(rawdata& rw)
 
 	//start from the INPUTS; first circuit column is reserved for input values
 	int currNrGate = 0;
-	for(vector<fileline>::iterator it=rw.fileLines.begin(); it != rw.fileLines.end(); it++)
+	for(std::vector<fileline>::iterator it=rw.fileLines.begin(); it != rw.fileLines.end(); it++)
 	{
 		//first available column in the circuit is 1
 		currNrGate++;
@@ -37,7 +35,7 @@ processraw::processraw(rawdata& rw)
 		char gate = (char) it->at(0);
 		long qubit = it->at(1);
 
-		vector<int> opnums = getOpNumber(gate);
+		std::vector<int> opnums = getOpNumber(gate);
 
 		if(gate == CH_TOFFOLI)
 		{
@@ -56,7 +54,7 @@ processraw::processraw(rawdata& rw)
 	}
 }
 
-vector<int> processraw::getOpNumber(char gate)
+std::vector<int> processraw::getOpNumber(char gate)
 {
 	int opnumber = WIRE;
 	switch(gate)
@@ -81,7 +79,7 @@ vector<int> processraw::getOpNumber(char gate)
 		break;
 	}
 
-	vector<int> ret;
+	std::vector<int> ret;
 	ret.push_back(opnumber);
 
 	if(gate == CH_CNOT)
@@ -90,13 +88,13 @@ vector<int> processraw::getOpNumber(char gate)
 	return ret;
 }
 
-void processraw::placeCnot(int currNrGate, vector<int>& opnums, fileline& rawFileLine)
+void processraw::placeCnot(int currNrGate, std::vector<int>& opnums, fileline& rawFileLine)
 {
 	//place the control
 	circuit.at(rawFileLine[1]).at(currNrGate) = opnums[0];
 
 	//place the targets
-	vector<long> targets(rawFileLine.begin() + 2, rawFileLine.end());
+	std::vector<long> targets(rawFileLine.begin() + 2, rawFileLine.end());
 	for(int i=0; i<targets.size(); i++)
 	{
 		circuit.at(targets.at(i)).at(currNrGate) = opnums[1];
@@ -110,8 +108,8 @@ int processraw::placeNonICMDecomposition(const char* name, int currNrGate, filel
 	int toffLength = el.gates.at(0).size();
 	int toffCnots = el.getNumberOfCnots();
 
-	vector<int> defaultOps(2, -1);
-	vector<vector<int> > cnots(toffCnots, defaultOps);
+	std::vector<int> defaultOps(2, -1);
+	std::vector<std::vector<int> > cnots(toffCnots, defaultOps);
 	for(int i=0; i< toffCnots; i++)
 	{
 		cnots[i] = getOpNumber(CH_CNOT);

@@ -8,8 +8,6 @@
 #include "convertcoordinate.h"
 #include "heuristicparameters.h"
 
-using namespace std;
-
 class Point
 {
 public:
@@ -46,9 +44,9 @@ public:
 //	void removePriority();
 //	void setPriority(int priority);
 	int getPriority();
-	void setWalkAndPriority(int walk, int priority, string journalMessage);
+	void setWalkAndPriority(int walk, int priority, std::string journalMessage);
 	void printBlockJournal();
-	list<string> blockJournal;
+	std::list<std::string> blockJournal;
 
 	/*
 	 * If the Point belongs to the closed list in A*

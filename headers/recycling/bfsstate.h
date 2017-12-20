@@ -10,37 +10,41 @@
 
 #define NOLEVEL -1
 
-using namespace std;
-
 class bfsState
 {
 public:
-	vector<int> toScheduleInputs[2];
-	vector<int> toDraw;
-	set<int> scheduledInputs;
-	vector<int> currentIdProWire;
-	int nrLines;
+//	std::vector<int> toScheduleInputs[2];
+//	std::vector<int> toDraw;
+//	std::set<int> scheduledInputs;
+//	std::vector<int> currentIdProWire;
 
-	map<int, int> operationIdToCircuitPinIndex;
+	std::vector<recyclegate*> toScheduleInputs[2];
+	std::vector<recyclegate*> toDraw;
+	std::set<recyclegate*> scheduledInputs;
+	std::map<wireelement*, recyclegate*> currentGateProWire;
+
+	//	int nrLines;
+
+	std::map<int, int> operationIdToCircuitPinIndex;
 
 	void resetLevels();
 	void saveMaxLevel(long newLevel);
 
 	bool isSomethingToDo();
-	void init(vector<int>& inputs);
+	void init(std::vector<recyclegate*>& inputs);
 
 	/*
 	 * The lines to be checked for computing the next minLevel
 	 */
-	set<int> minLevelLinesToCheck;
+	std::set<wireelement*> minLevelLinesToCheck;
 	void initLinesToCheck();
-	void removeFromLinesToCheck(int line);
-	void getMinLevelFromLinesToCheck(vector<recyclegate>& circuit, long& minLevel, int& minLevelPos);
+	void removeFromLinesToCheck(wireelement* line);
+	wireelement* getMinLevelFromLinesToCheck(long& minLevel);
 	void resetToDrawAndToSchedule();
 
 public:
 	long getRequiredMaximumInputLevel();
-	void setRequiredMaximumInputLevel(long value, string who);
+	void setRequiredMaximumInputLevel(long value, std::string who);
 
 	long getMaximumInputLevel();
 	void setMaximumInputLevel(long value);
@@ -50,6 +54,8 @@ public:
 
 	bool isCircuitFinished();
 	void setCircuitFinished(bool value);
+
+	size_t getNrLines();
 
 private:
 	/*

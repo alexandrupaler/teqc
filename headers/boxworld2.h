@@ -34,8 +34,8 @@ struct boxConfiguration
     int _pinScenario;
     int _heightStepSize;
 
-    vector<vector<int> > boxSize;
-    vector<int> distBetweenBoxes;
+    std:: vector<std::vector<int> > boxSize;
+    std::vector<int> distBetweenBoxes;
 
     boxConfiguration()
     {
@@ -44,11 +44,11 @@ struct boxConfiguration
 
     	boxSize.resize(2);
     	int bsizetmp[] = {60, 60, 60, 30, 30, 30};
-		boxSize[0] = vector<int>(bsizetmp + 0, bsizetmp + 3);
-		boxSize[1] = vector<int>(bsizetmp + 3, bsizetmp + 6);
+		boxSize[0] = std::vector<int>(bsizetmp + 0, bsizetmp + 3);
+		boxSize[1] = std::vector<int>(bsizetmp + 3, bsizetmp + 6);
 
 		int distatmp[] = { DELTA, DELTA, DELTA };
-		distBetweenBoxes = vector<int>(distatmp + 0, distatmp + 4);
+		distBetweenBoxes = std::vector<int>(distatmp + 0, distatmp + 4);
     }
 
     int getBoxTotalDimension(int boxType, int axis);
@@ -62,7 +62,7 @@ public:
 	int minWidth;
 	int minHeight;
 
-	void updateBBox(convertcoordinate& boxCoord, int type, vector<vector<int> >& boxSizes)
+	void updateBBox(convertcoordinate& boxCoord, int type, std::vector<std::vector<int> >& boxSizes)
 	{
 		if(maxHeight < boxCoord[CIRCUITHEIGHT] + boxSizes[type][CIRCUITHEIGHT])
 		{
@@ -164,14 +164,14 @@ public:
 
     void switchLayoutConfig(int configNumber);
 
-    queue<int> computeScheduleCanonical(long boxStartTimeCoordinate, causalgraph& causal);
-    queue<int> computeScheduleALAPT(long boxStartTimeCoordinate, int boxType, int available, int necessary);
+    std::queue<int> computeScheduleCanonical(long boxStartTimeCoordinate, causalgraph& causal);
+    std::queue<int> computeScheduleALAPT(long boxStartTimeCoordinate, int boxType, int available, int necessary);
 
-	int preSimulateFailuresInGreedy(queue<int>& boxPinIds, int totalToSim, int boxType, schedulerLevelInfo& greedyLevel);
+	int preSimulateFailuresInGreedy(std::queue<int>& boxPinIds, int totalToSim, int boxType, schedulerLevelInfo& greedyLevel);
 
 	void initGeomBoundingBox(long wf, long ws, long df, long ds, long hf, long hs);
 	void initScheduleGreedy(double aStateFail, double yStateFail, double tGateFail, double pGateFail);
-	queue<int> greedyScheduleBoxes(long boxStartTimeCoordinate, int boxType, int available, int necessary);
+	std::queue<int> greedyScheduleBoxes(long boxStartTimeCoordinate, int boxType, int available, int necessary);
 
 	bool setConnectionBoxWidth(int totalWidth);
 	bool setConnectionBoxHeight(int totalHeight);
@@ -183,8 +183,8 @@ public:
 
     convertcoordinate currBoxCoords;
 
-    vector<boxcoord> boxCoords;
-    vector<pinpair> boxPins;
+    std::vector<boxcoord> boxCoords;
+    std::vector<pinpair> boxPins;
 
     //this is not used in the greedy scheduler
     numberandcoordinate nandc;

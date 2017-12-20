@@ -1,7 +1,7 @@
 #ifndef SCHEDULERCONTROL_H_
 #define SCHEDULERCONTROL_H_
 
-#include "bfsstate.h"
+#include "recycling/bfsstate.h"
 #include "heuristicparameters.h"
 #include "boxworld2.h"
 

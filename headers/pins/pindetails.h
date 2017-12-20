@@ -6,12 +6,10 @@
 
 #include <vector>
 
-using namespace std;
-
 struct pindetails
 {
 	convertcoordinate coord;
-	vector<pinblocker> blocks;
+	std::vector<pinblocker> blocks;
 
 	void addPinBlock(int offset, int direction, int distance, int blockType, pinblockjournalentry& journal);
 

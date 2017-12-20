@@ -10,8 +10,6 @@
 #include "fileformats/generaldefines.h"
 #include "numberandcoordinate.h"
 
-using namespace std;
-
 /**
  * Class used for storing a geometry which is based on vertices having three
  * dimensional coordinates and segments connecting the vertices. Segments are
@@ -34,14 +32,14 @@ public:
 	 * @param idx2
 	 * @return
 	 */
-	pair<long, long> computePair(int idx1, int idx2);
+	std::pair<long, long> computePair(int idx1, int idx2);
 
 	/**
 	 * Utility function. Generate string from pair. Used as key in segMap.
 	 * @param p
 	 * @return
 	 */
-	string computeKey(pair<long, long>& p);
+	std::string computeKey(std::pair<long, long>& p);
 
 	/**
 	 * Adds a segment. Does not check if the indices are already existing.
@@ -86,30 +84,30 @@ public:
 	/**
 	 * The collection of vertex coordinates.
 	 */
-	vector<convertcoordinate> coords;
+	std::vector<convertcoordinate> coords;
 
 	/**
 	 * The collection of coordinate index pairs representing segments.
 	 */
-	vector<pair<long, long> > segs;
+	std::vector<std::pair<long, long> > segs;
 
 	/**
 	 * A collection of vertex indices that are marked as "special". For
 	 * the case of circuits, the indices represent input/output points.
 	 */
-	vector<long> io;//input outputs
+	std::vector<long> io;//input outputs
 
 	/**
 	 * The map uses a serialised version of the coordinates as key for
 	 * retrieving their index in the coordinate collection.
 	 */
-	map<string, long> coordMap;
+	std::map<std::string, long> coordMap;
 
 	/**
 	 * The map uses a serialised version of the segments as key for
 	 * retrieving their index from the segments collection.
 	 */
-	map<string, long> segMap;
+	std::map<std::string, long> segMap;
 
 	/**
 	 * The bounding box of the generated geometry

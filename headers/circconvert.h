@@ -6,39 +6,43 @@
 #include <list>
 
 #include "recycling/recyclegate.h"
-
-using namespace std;
+#include "recycling/causalgraph.h"
 
 class circconvert{
 public:
-	circconvert(char* fname);
-	circconvert(vector<string> file);
+//	circconvert(char* fname);
+//	circconvert(std::vector<std::string>& file);
 
-	static vector<string> readFile(char* fname);
-	void makeGates(vector<string> file);
+	circconvert();
 
-//	list<circgate> gates;
+//	void makeGates(std::vector<std::string> file);
 
-	list<recyclegate> gates;
+//	std::list<recyclegate> gates;
+//
+//	std::list<char> inputs;
+//	std::list<char> outputs;
 
-	string inputs;
-	string outputs;
-	void updateWiresStartingFromGate(list<recyclegate>::iterator after, int minWireNumber, int incrValue);
+//	void updateWiresStartingFromGate(std::list<recyclegate>::iterator after, int minWireNumber, int incrValue);
 
-	void includeWires(int howMany, int where);
+//	void includeWires(int howMany, int where);
+//	void includeWires2(int howMany, int where);
 
-	void replaceNonICM();
-	void replaceICM();
+//	void replaceNonICM();
+	void replaceNonICM2(causalgraph& causal);
 
-	void configInputs(int qubit, string ins);
-	void configOutputs(int qubit, string outs);
+//	void replaceICM();
+	void replaceICM2(causalgraph& causal);
 
-	void makeAncillaInput(int qubit);
-	void makeAncillaOutput(int qubit);
-	void makeComputeInput(int qubit);
-	void makeComputeOutput(int qubit);
 
-	void print();
+//	void configInputs(int qubit, std::string ins);
+//	void configOutputs(int qubit, std::string outs);
+//
+//	void makeAncillaInput(int qubit);
+//	void makeAncillaOutput(int qubit);
+//	void makeComputeInput(int qubit);
+//	void makeComputeOutput(int qubit);
+
+//	void print();
 };
 
 #endif

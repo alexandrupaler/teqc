@@ -7,13 +7,14 @@
 
 #include <iostream>
 #include <fstream>
-#include <set>
+#include <map>
 #include <sstream>
 #include <string>
 
 #include <algorithm>
-//#include "circgate.h"
 #include "costmodel.h"
+
+#include "recycling/wireelement.h"
 
 
 #define RECNOTYPE -1
@@ -25,43 +26,49 @@
 #define RECINPUT 5
 #define RECOUTPUT 6
 
-using namespace std;
-
-//class recyclegate : public circgate{
 class recyclegate
 {
 public:
-	set<int> willPush;
-    set<int> pushedBy;
-	int id;
+//	map<WIRE ID REFERRING TO THIS GATE, OP ID OF OTHER GATE>
+//	std::map<int, int> willPush;
+//	std::map<int, int> pushedBy;
+
+	std::map<int, recyclegate*> willPush;
+	std::map<int, recyclegate*> pushedBy;
+
+	long orderNrInGateList;
 	int causalType;
 	long level;
-	string label;
 
-	vector<int> wiresToUseForLinks;
+	std::vector<wireelement*> wiresToUseForLinks;
+
+	//22.03.2017
+	std::vector<wireelement*> wirePointers;
+//	std::vector<int> wires;
+//	std::vector<int> afterSplit;
+	bool isVisited;
 
 	/*from circgate.h*/
 	char type;
-	vector<int> wires;
+
 	int gateCost;
 	int additionalWireCost;
 
-	void replaceWires(map<int, int>& dict);
+//	void replaceWires(std::map<int, int>& dict);
 	void updateTypeAndCost(bool isInitialisation, char ctype, costmodel& model);
 	/*end*/
 
 	recyclegate();
-	void initFrom(recyclegate& g);
-	recyclegate(string& s);
+//	void initFrom(recyclegate& g);
+	recyclegate(std::string& s, std::vector<wireelement*>& wirePointersVector);
 
-	void generateLabel();
+	std::string generateLabel();
 	void print();
 
-	void addWillPush(int nr);
+	void addWillPush(int wire, recyclegate* gatePtr);
+    void addPushedBy(int wire, recyclegate* gatePtr);
 
-    void addPushedBy(int nr);
-
-	void getMinMax(int& min, int& max);
+//	void getMinMax(int& min, int& max);
 
 	void updateCausalType();
 
@@ -80,6 +87,13 @@ public:
 	void computeOnlyWires();
 
 	void updateGateCostToAchieveLevel(long level);
+
+	unsigned long getId();
+
+private:
+	void init();
+
+	/*const*/ unsigned long id;
 };
 
 #endif /* RECYCLEGATE_H_ */

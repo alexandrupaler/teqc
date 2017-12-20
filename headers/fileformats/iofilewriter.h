@@ -7,12 +7,10 @@
 #include "geometry.h"
 #include "numberandcoordinate.h"
 
-using namespace std;
-
 class iofilewriter{
 public:
-	static string getIOFileName(const char* basisfilename);
-	void writeIOFile(FILE* file, vector<pinpair>& allpins);
+	static std::string getIOFileName(const char* basisfilename);
+	void writeIOFile(FILE* file,std:: vector<pinpair>& allpins);
 };
 
 

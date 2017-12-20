@@ -3,36 +3,52 @@
 
 #include <vector>
 #include <queue>
-#include "circconvert.h"
-#include "costmodel.h"
-#include "bfsstate.h"
+#include <list>
 
-using namespace std;
+#include "recycling/recyclegate.h"
+#include "recycling/wireelement.h"
+#include "recycling/wireorder.h"
+#include "recycling/costmodel.h"
+#include "recycling/bfsstate.h"
 
 class causalgraph
 {
 public:
-	vector<recyclegate> circuit;
-	vector<int> lastSeen;
-	set<int> inAncillae;
-	set<int> outAncillae;
-	int nrQubits;
+	//make pointers
+	//the vector is constructed only after
+	//graph operations finished
+//	std::vector<recyclegate*> circuit;
+
+	//constructor and operations using list
+	std::list<recyclegate*> tmpCircuit;
+
+	std::list<recyclegate*> memTmpCircuit;
+	std::list<wireelement*> memWireElements;
+
+	wireelement* firstWire;
+
+////	wireorder* initiallyFirstWireOrder;
+//	std::vector<wireorder*> memWireOrder;
+
+	std::vector<int> lastSeen;
+//	std::set<int> inAncillae;
+//	std::set<int> outAncillae;
+
+	costmodel costModel;
 
 	int getNrQubits();
 	long getMaxLevel();
 
-	int getTotalAStates();
-	int getTotalYStates();
-	vector< vector <int> > getTypesAndWiresOfInjections();
+//	void constructFrom(std::list<recyclegate>& gates, std::list<char>& inputs, std::list<char>& outputs, costmodel& model);
+	void constructFrom2(std::vector<std::string>& circuit);
 
-	void constructFrom(circconvert& cc, costmodel& model);
-	void connectNodes(int previd, int currid);
+	void connectNodes(int prevWire, int currWire, recyclegate* previd, recyclegate* currid);
 	void updateLabels();
 
-	int getSuccessorOnSameWire(int currid, int wire);
+	recyclegate* getSuccessorOnSameWire(recyclegate* current, wireelement* wire);
 
     void resetAllLevels();
-    void resetLevelsStartingFrom(int currId);
+    void resetLevelsStartingFrom(recyclegate* current);
 	void computeLevels();
 	void computeLevels(bool useGateCost, int operationDistance);
 	void updateLevelsAtValue(bfsState& current, long oldCost, long newCost);
@@ -40,30 +56,47 @@ public:
 	void equalizeLevels();
 	void equalizeOutputLevels();
 	void equalizeInputLevels();
-	vector<int> equalizeConsideringCosts();
+	std::vector<recyclegate*> equalizeConsideringCosts();
 
-	void reachOutputs(set<int>& visited, set<int>& outputs, int curr);
+//	void reachOutputs(/*std::set<recyclegate*>& visited, */std::set<recyclegate*>& outputs, recyclegate* curr);
 
 	//intr-un fel este identica cu functia din circconvert
-	void replaceQubitIndex(set<int>& visited, int curr, int oldvalue, int newvalue);
+//	void replaceQubitIndex(std::set<int>& visited, int curr, int oldvalue, int newvalue);
 
-	void findShortestPath(set<int>& visited, set<int>& outputs, vector<int> path, vector<int>& shortest, int stepback, int prev, int curr);
+//	void findShortestPath(std::set<int>& visited, std::set<int>& outputs, std::vector<int> path, std::vector<int>& shortest, int stepback, int prev, int curr);
 
-	int moveInputAfterOutput(vector<int> shortest, int inputId);
+	int moveInputAfterOutput(std::vector<int> shortest, int inputId);
 
-	vector<int> bfs();
-	bool blockwiseBfs(bfsState& state, long blockTimeLength);
+	std::vector<recyclegate*> bfs();
 	bool stepwiseBfs(bfsState& state);
 
-	void reconstructConsideringCosts(vector<int> order);
-	void reconstructWithoutConsideringCosts(vector<int> order);
+	void reconstructConsideringCosts(std::vector<recyclegate*>& order);
+	void reconstructWithoutConsideringCosts(std::vector<recyclegate*>& order);
 
-	vector<int> getRoots();
-	vector<int> getAncillaInitialisations();
-    void computeLinks(vector<int> order);
+	std::vector<recyclegate*> getRoots();
+//	std::vector<int> getAncillaInitialisations();
+    void computeLinks(std::vector<recyclegate*> order);
+
+    std::vector<wireelement*> splitWire2(wireelement* wire, std::list<recyclegate*>::iterator& originalGate);
+    void joinWires2(wireelement* wireMeasurement, wireelement* wireInitialisation);
+    std::vector<recyclegate*> insertMeasurementAndInitialisation2(std::vector<wireelement*>& wires,
+    		std::string ins,
+    		std::string outs,
+    		std::list<recyclegate*>::iterator& originalGate);
+    std::vector<wireelement*> insertWires2(std::vector<wireelement*>& wires, int nr);
+    void insertGates2(std::vector<std::string>& gateList, std::vector<wireelement*>& wires, std::list<recyclegate*>::iterator& originalGate);
+    std::vector<recyclegate*> numberGateList2();
+    void printGateList2();
+    size_t numberWires2();
+//    void orderWires2();
+
+    causalgraph(costmodel& model);
+    ~causalgraph();
+
+	wireelement* getFirstWireElement();
 
 private:
-	long getAndSetMaxPrevLevel(int& currid, bool useGateCost, int operationDistance);
+	long getAndSetMaxPrevLevel(recyclegate* current, bool useGateCost, int operationDistance);
 };
 
 #endif

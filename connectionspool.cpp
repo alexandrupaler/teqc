@@ -12,9 +12,9 @@ connectionsPool::connectionsPool()
 	nrAvailable[1] = 0;
 }
 
-set<size_t> connectionsPool::getAllUnavailable()
+std::set<size_t> connectionsPool::getAllUnavailable()
 {
-	set<size_t> ret;
+	std::set<size_t> ret;
 
 	ret.insert(reservedButNotAssigned[0].begin(), reservedButNotAssigned[0].end());
 	ret.insert(reservedButNotAssigned[1].begin(), reservedButNotAssigned[1].end());
@@ -109,7 +109,7 @@ size_t connectionsPool::reserveConnectionPreferred(int boxType, size_t approxCon
 {
 	size_t currentApprox = approxConnectionNumber;
 
-	vector<size_t>::iterator foundIterator = available.end();
+	std::vector<size_t>::iterator foundIterator = available.end();
 
 	bool doNotFlipDirection = false;
 	int step = 0;

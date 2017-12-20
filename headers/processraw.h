@@ -8,8 +8,6 @@
 #include "fileformats/rawfilereader.h"
 #include "fileformats/generaldefines.h"
 
-using namespace std;
-
 /**
  * Class used for replacing gates with their non-ICM decompositions stored in
  * a database, and for generating a quantum circuit representation that is very
@@ -27,7 +25,7 @@ public:
 	/**
 	 * @return the matrix representation of the transformed circuit
 	 */
-	vector<qubitline>& getCircuit(){return circuit;}
+	std::vector<qubitline>& getCircuit(){return circuit;}
 
 	/**
 	 * Each gate type in the raw file will be translated into one or multiple
@@ -37,7 +35,7 @@ public:
 	 * in the rawfilereader class header file.
 	 * @return vetor of integer values representing the gate
 	 */
-	vector<int> getOpNumber(char gateType);
+	std::vector<int> getOpNumber(char gateType);
 
 	/**
 	 * A raw file line starts with a char followed by a list of integer values.
@@ -49,7 +47,7 @@ public:
 	 * @param opnums list of integers representing the CTRL and TGT
 	 * @param rawFileLine contains the list of qubits affected by the CNOT
 	 */
-	void placeCnot(int currNrGate, vector<int>& opnums, fileline& rawFileLine);
+	void placeCnot(int currNrGate, std::vector<int>& opnums, fileline& rawFileLine);
 
 	/**
 	 * Replaces a gate with its non-ICM decomposition read from the database,
@@ -65,7 +63,7 @@ public:
 	int placeNonICMDecomposition(const char* name, int currNrGate, fileline& rawFileLine);
 
 private:
-	vector<qubitline> circuit;
+	std::vector<qubitline> circuit;
 
 	databasereader dbReader;
 

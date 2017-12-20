@@ -10,8 +10,6 @@
 #include "gatenumbers.h"
 #include "decomposition.h"
 
-using namespace std;
-
 /**
  * The class is used for gate decompositions from a test database. The database contains ICM and non-ICM gate decompositions.
  * For example, the Toffoli decomposition into seven T gates is non-ICM. Each decomposition contains operations applied on qubits.
@@ -21,9 +19,9 @@ using namespace std;
 class databasereader
 {
 public:
-	map<string, int> nameToInt;
-	map<int, string> intToName;
-	map<string, decomposition> decomp;
+	std::map<std::string, int> nameToInt;
+	std::map<int, std::string> intToName;
+	std::map<std::string, decomposition> decomp;
 
 	/**
 	 * The default constructor.
@@ -50,7 +48,7 @@ public:
 	 * @param fp file handler of the database
 	 * @param list list to contain the read operations
 	 */
-	void readOperations(FILE* fp, vector<int>& list);
+	void readOperations(FILE* fp, std::vector<int>& list);
 
 	/**
 	 * The method is structurally very similar to readOperations, but specific for CNOTs.
@@ -59,7 +57,7 @@ public:
 	 * @param valoffset qubit numbers can be offset down when e.g. they represent indices in a vector
 	 * @return
 	 */
-	bool readCnot(FILE* fp, vector<int>& list, int valoffset);
+	bool readCnot(FILE* fp, std::vector<int>& list, int valoffset);
 
 	/**
 	 * Reads a decomposition from the database and creates returns an object containing it.
@@ -67,20 +65,20 @@ public:
 	 * @param name the name of the decomposition
 	 * @return the decomposition object
 	 */
-	decomposition readDecomposition(FILE* file, string name);
+	decomposition readDecomposition(FILE* file, std::string name);
 
 	/**
 	 * Advances the file reading process until a decomposition name is found in the file.
 	 * @param file the file handler of the database
 	 * @return the name of the decomposition
 	 */
-	string findDecomposition(FILE* file);
+	std::string findDecomposition(FILE* file);
 
 	/**
 	 * Read the entire database into a std::map indexed by the decomposition names.
 	 * @param decomp the destination map where the decompositions are stored
 	 */
-	void readDatabase(map<string, decomposition>& decomp);
+	void readDatabase(std::map<std::string, decomposition>& decomp);
 };
 
 

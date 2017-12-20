@@ -14,7 +14,7 @@ void recyclegate::updateGateCostToAchieveLevel(long newCost)
 	}
 	else
 	{
-		printf("u %d from %d to %ld\n", id, gateCost, costToAdd);
+		printf("u %d from %d to %ld\n", orderNrInGateList, gateCost, costToAdd);
 		gateCost += costToAdd;//TODO += or = ?
 	}
 }
@@ -43,95 +43,113 @@ void recyclegate::updateCausalType()
 	}
 }
 
-void recyclegate::initFrom(recyclegate& g)
+void recyclegate::init()
 {
-	//copy attributes
-	type = g.type;
-	wires = g.wires;
+	level = 0;
+	orderNrInGateList = -1;
+	causalType = RECNOTYPE;
+	gateCost = 0;
+	additionalWireCost = 0;
+	type = EMPTY;
 
-	computeOnlyWires();
+	static unsigned long current = 0;
+	current++;
+	id = current;
+
+	isVisited = false;
 }
+
+unsigned long recyclegate::getId()
+{
+	return id;
+}
+
+//void recyclegate::initFrom(recyclegate& g)
+//{
+//	//copy attributes
+//	type = g.type;
+////	wires = g.wires;
+//
+//	computeOnlyWires();
+//}
 
 recyclegate::recyclegate()
 {
-	level = 0;
-	label = " ";
-	id = -1;
-	causalType = RECNOTYPE;
-
-	gateCost = 0;
-	additionalWireCost = 0;
+	init();
 }
 
-void recyclegate::generateLabel()
+std::string recyclegate::generateLabel()
 {
-	string name = " ";
+	std::string name = " ";
 	if(causalType == RECINIT || causalType == RECINITCONN || causalType == RECINPUT)
 	{
 		name = "input" + //toString(it->lines[0]);
-				toString(wires[0]);
+				toString(wirePointers[0]->number);
 	}
 	else if(causalType == RECMEAS || causalType == RECMEASCONN || causalType == RECOUTPUT)
 	{
-		name = "output" + toString(wires[0]);
+		name = "output" + toString(wirePointers[0]->number);
 	}
 	else
 	{
-		name = toString(id + 1);
+		name = toString(orderNrInGateList + 1);
 	}
 
-	label = name + " [" + toString(level) + "]";
+	std::string label(name + " [" + toString(level) + "]");
+
+	return label;
 }
 
 void recyclegate::print()
 {
 	printf("label:%s level:%ld g/w cost:%d/%d id:%d type:%d causalType:%d on lines:",
-			label.c_str(), level, gateCost, additionalWireCost, id, type, causalType);
-	for(vector<int>::iterator it = wires.begin(); it != wires.end(); it++)
+			generateLabel().c_str(), level, gateCost, additionalWireCost, orderNrInGateList, type, causalType);
+	for(std::vector<wireelement*>::iterator it = wirePointers.begin(); it != wirePointers.end(); it++)
 	{
-		printf("%d ", *it);
+		printf("%lu ", (*it)->number);
 	}
 	printf("\npushes: ");
-	for(set<int>::iterator it = willPush.begin(); it != willPush.end(); it++)
+	for(std::map<int, recyclegate*>::iterator it = willPush.begin(); it != willPush.end(); it++)
 	{
-		printf("%d ", *it);
+		printf("%d ", it->second->orderNrInGateList);
 	}
 	printf("\npushed by: ");
-	for(set<int>::iterator it = pushedBy.begin(); it != pushedBy.end(); it++)
+	for(std::map<int, recyclegate*>::iterator it = pushedBy.begin(); it != pushedBy.end(); it++)
 	{
-		printf("%d ", *it);
+		printf("%d ", it->second->orderNrInGateList);
 	}
 	printf("\n-------\n");
 }
 
-void recyclegate::addWillPush(int nr)
+void recyclegate::addWillPush(int wire, recyclegate* gatePtr)
 {
-	if(willPush.find(nr) == willPush.end())
+	if(willPush.find(wire) == willPush.end())
 	{
-		willPush.insert(nr);
+		willPush[wire] = gatePtr;
 	}
 }
 
-void recyclegate::addPushedBy(int nr)
+void recyclegate::addPushedBy(int wire, recyclegate* gatePtr)
 {
-	pushedBy.insert(nr);
+	//pushedBy.insert(nr);
+	pushedBy[wire] = gatePtr;
 }
 
-void recyclegate::getMinMax(int& min, int& max)
-{
-	if(wires.size() == 0)
-		return;
-
-	min = INT_MAX;
-	max = INT_MIN;
-	for(vector<int>::iterator it = wires.begin(); it != wires.end(); it++)
-	{
-		if(min > *it)
-			min = *it;
-		if(max < *it)
-			max = *it;
-	}
-}
+//void recyclegate::getMinMax(int& min, int& max)
+//{
+//	if(wires.size() == 0)
+//		return;
+//
+//	min = INT_MAX;
+//	max = INT_MIN;
+//	for(std::vector<int>::iterator it = wires.begin(); it != wires.end(); it++)
+//	{
+//		if(min > *it)
+//			min = *it;
+//		if(max < *it)
+//			max = *it;
+//	}
+//}
 
 bool recyclegate::isAncillaInitialisation()
 {
@@ -185,32 +203,35 @@ bool recyclegate::isGate()
 
 void recyclegate::computeWiresWithCosts()
 {
-	wiresToUseForLinks.clear();
-
-	int minq;
-	int maxq;
-	getMinMax(minq, maxq);
-	for(int i=minq; i<=maxq + additionalWireCost; i++)
-	{
-		wiresToUseForLinks.push_back(i);
-	}
+//	wiresToUseForLinks.clear();
+//
+//	int minq;
+//	int maxq;
+//	getMinMax(minq, maxq);
+//	for(int i=minq; i <= maxq + additionalWireCost; i++)
+//	{
+////		wiresToUseForLinks.push_back(i);
+//		//NOT USED ANYMORE
+//	}
 }
 
 void recyclegate::computeOnlyWires()
 {
 	wiresToUseForLinks.clear();
-	wiresToUseForLinks = wires;
+//	wiresToUseForLinks = wires;
+	wiresToUseForLinks = wirePointers;
 }
 
 /*from circgate.cpp*/
-
-recyclegate::recyclegate(string& s)
+recyclegate::recyclegate(std::string& s, std::vector<wireelement*>& wirePointersVector)
 {
+	init();
+
 	gateCost = 0;
 	additionalWireCost = 0;
 
-	istringstream in(trim(s));
-	string typ;
+	std::istringstream in(trim(s));
+	std::string typ;
 	in >>  typ;
 
 	type = typ[0];//a single char..not good?
@@ -219,7 +240,9 @@ recyclegate::recyclegate(string& s)
 	{
 		int nr;
 		in >> nr;
-		wires.push_back(nr);
+//		wires.push_back(nr);
+
+		wirePointers.push_back(wirePointersVector[nr]);
 	}
 }
 
@@ -277,11 +300,11 @@ void recyclegate::updateTypeAndCost(bool isInitialisation, char ctype, costmodel
 	}
 }
 
-void recyclegate::replaceWires(map<int, int>& dict)
-{
-	for(vector<int>::iterator wit = wires.begin(); wit != wires.end(); wit++)
-	{
-		if(dict.find(*wit) != dict.end())
-			*wit = dict[*wit];
-	}
-}
+//void recyclegate::replaceWires(std::map<int, int>& dict)
+//{
+//	for(std::vector<int>::iterator wit = wires.begin(); wit != wires.end(); wit++)
+//	{
+//		if(dict.find(*wit) != dict.end())
+//			*wit = dict[*wit];
+//	}
+//}

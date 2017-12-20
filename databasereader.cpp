@@ -14,7 +14,7 @@ void databasereader::fillTranslations()
 		if(strcmp(el, "#define") == 0)
 		{
 			fscanf(self, "%s %d ", el, &number);
-			string s(el);
+			std::string s(el);
 			nameToInt[el] = number;
 			intToName[number] = el;
 
@@ -27,10 +27,10 @@ void databasereader::fillTranslations()
 
 int databasereader::getNumber(char* key)
 {
-	return nameToInt.at(string(key));
+	return nameToInt.at(std::string(key));
 }
 
-void databasereader::readOperations(FILE* fp, vector<int>& list)
+void databasereader::readOperations(FILE* fp, std::vector<int>& list)
 {
 	char c = '?';
 	char op[100];
@@ -57,7 +57,7 @@ void databasereader::readOperations(FILE* fp, vector<int>& list)
 	//printf("----\n");
 }
 
-bool databasereader::readCnot(FILE* fp, vector<int>& list, int valoffset)
+bool databasereader::readCnot(FILE* fp, std::vector<int>& list, int valoffset)
 {
 	char c = '?';
 	char op[100];
@@ -101,7 +101,7 @@ bool databasereader::readCnot(FILE* fp, vector<int>& list, int valoffset)
 	return true;
 }
 
-decomposition databasereader::readDecomposition(FILE* file, string name)
+decomposition databasereader::readDecomposition(FILE* file, std::string name)
 {
 	decomposition el;
 	el.name = name;
@@ -130,7 +130,7 @@ decomposition databasereader::readDecomposition(FILE* file, string name)
 
 		for(int i=0; i<el.nrAncilla + 1; i++)
 		{
-			vector<int> line;
+			std::vector<int> line;
 			readOperations(file, line);
 			el.gates.push_back(line);
 		}
@@ -138,7 +138,7 @@ decomposition databasereader::readDecomposition(FILE* file, string name)
 	else
 	{
 		readOperations(file, el.inits);
-		vector<int> cnot;
+		std::vector<int> cnot;
 		bool cn = readCnot(file, cnot, 1/*offset to the back the indices by 1*/);
 		while(cn)
 		{
@@ -153,7 +153,7 @@ decomposition databasereader::readDecomposition(FILE* file, string name)
 }
 
 
-string databasereader::findDecomposition(FILE* file)
+std::string databasereader::findDecomposition(FILE* file)
 {
 	char line[1024];
 	while(!feof(file))
@@ -161,20 +161,20 @@ string databasereader::findDecomposition(FILE* file)
 		fscanf(file, "%s", line);
 		if(line[0] == '=')
 		{
-			return string(line + 1);
+			return std::string(line + 1);
 		}
 	}
 	return "";
 }
 
-void databasereader::readDatabase(map<string, decomposition>& decomp)
+void databasereader::readDatabase(std::map<std::string, decomposition>& decomp)
 {
 	FILE* file = fopen("database", "r");
 
 	while(!feof(file))
 	{
 		//read until string starts with name
-		string name = findDecomposition(file);
+		std::string name = findDecomposition(file);
 		if(!name.empty())
 		{
 			//printf("%s\n", name.c_str());

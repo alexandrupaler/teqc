@@ -5,11 +5,11 @@
 #include "plumbingpieces.h"
 #include "fileformats/generaldefines.h"
 
-string plumbingpiece::toString()
+std::string plumbingpiece::toString()
 {
 	char mask[12] = "x, x, x, x";
 
-	string msg = position.toString(',');
+	std::string msg = position.toString(',');
 	msg = "{ \"position\":[" + msg + "],";
 	msg += "\"defects\":{";
 
@@ -17,13 +17,13 @@ string plumbingpiece::toString()
 	mask[3] = (primal&4) == 4 ? '1' : '0';
 	mask[6] = (primal&2) == 2 ? '1' : '0';
 	mask[9] = (primal&1) == 1 ? '1' : '0';
-	msg += "\"primal\": [" + string(mask) + "], ";
+	msg += "\"primal\": [" + std::string(mask) + "], ";
 
 	mask[0] = (dual&8) == 8 ? '1' : '0';
 	mask[3] = (dual&4) == 4 ? '1' : '0';
 	mask[6] = (dual&2) == 2 ? '1' : '0';
 	mask[9] = (dual&1) == 1 ? '1' : '0';
-	msg += "\"dual\": [" + string(mask) + "]";
+	msg += "\"dual\": [" + std::string(mask) + "]";
 
 	msg += "},";
 	msg += "\"corrs\": {} }";
@@ -53,7 +53,7 @@ void plumbingpiece::setMask(bool isPrimal, unsigned int mask)
 
 int plumbingpiecesgenerator::getPlumbingPieceIndex(convertcoordinate& coord)
 {
-	string key = coord.toString(',');
+	std::string key = coord.toString(',');
 	if(plumbMap.find(key) == plumbMap.end())
 	{
 		plumbingpiece piece;
@@ -68,11 +68,11 @@ int plumbingpiecesgenerator::getPlumbingPieceIndex(convertcoordinate& coord)
 
 void plumbingpiecesgenerator::generateFromGeometry(geometry& geom)
 {
-	map<string, int> potentialCornerCounts;
-	map<string, plumbingpiece> potentialCorners;
+	std::map<std::string, int> potentialCornerCounts;
+	std::map<std::string, plumbingpiece> potentialCorners;
 
 	//1+8=9,2+8=10,4+8=12
-	for(vector<pair<long, long> >::iterator it = geom.segs.begin();
+	for(std::vector<std::pair<long, long> >::iterator it = geom.segs.begin();
 			it != geom.segs.end(); it++)
 	{
 		bool isIO = std::find(geom.io.begin(), geom.io.end(), it->first) != geom.io.end();
@@ -151,7 +151,7 @@ void plumbingpiecesgenerator::generateFromGeometry(geometry& geom)
 			{
 				//always add last origin
 				localValPiece = 8;
-				string key = iterCoord.toString(',');
+				std::string key = iterCoord.toString(',');
 
 				if(potentialCornerCounts.find(key) == potentialCornerCounts.end())
 				{
@@ -172,7 +172,7 @@ void plumbingpiecesgenerator::generateFromGeometry(geometry& geom)
 		}
 
 		//consider only the pieces where an origin was used at least twice >=2
-		for(map<string, int>::iterator it = potentialCornerCounts.begin(); it!=potentialCornerCounts.end(); it++)
+		for(std::map<std::string, int>::iterator it = potentialCornerCounts.begin(); it!=potentialCornerCounts.end(); it++)
 		{
 			if(it->second >= 2)
 			{

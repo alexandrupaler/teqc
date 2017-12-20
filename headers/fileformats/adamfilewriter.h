@@ -6,8 +6,6 @@
 #include "numberandcoordinate.h"
 #include "plumbingpieces.h"
 
-using namespace std;
-
 /**
  * The class is used for writing files containing circuit geometries
  */
@@ -18,14 +16,14 @@ public:
 	 * @param basisfilename the file name that will be extended by appending the extension
 	 * @return the file name
 	 */
-	static string getAdamFileName(const char* basisfilename);
+	static std::string getAdamFileName(const char* basisfilename);
 
 	/**
 	 * Write a circuit geometry to a file
 	 * @param f the file handler already opened with "w"
 	 * @param pieces a vector of plumbing pieces
 	 */
-	void writeAdamFile(FILE* f, vector<plumbingpiece>& pieces);
+	void writeAdamFile(FILE* f, std::vector<plumbingpiece>& pieces);
 };
 
 

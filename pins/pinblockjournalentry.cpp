@@ -12,11 +12,11 @@ pinblockjournalentry::pinblockjournalentry()
 	poolConnectionNumber = -1;
 }
 
-string pinblockjournalentry::toString()
+std::string pinblockjournalentry::toString()
 {
-	stringstream ret;
+	std::stringstream ret;
 
-	string walk;
+	std::string walk;
 	switch(blockType)
 	{
 	case WALKFREE:

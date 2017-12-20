@@ -73,9 +73,9 @@ bool circuitmatrix::hasInjections()
 	return false;
 }
 
-vector<int> circuitmatrix::findTarget(int i, int j)
+std::vector<int> circuitmatrix::findTarget(int i, int j)
 {
-	vector<int> ret;
+	std::vector<int> ret;
 	int controlnumber = circ.at(i).at(j);
 
 	for(size_t k=0; k<circ.size(); k++)
@@ -86,9 +86,9 @@ vector<int> circuitmatrix::findTarget(int i, int j)
 	return ret;
 }
 
-vector<int> circuitmatrix::findControl(int i, int j)
+std::vector<int> circuitmatrix::findControl(int i, int j)
 {
-	vector<int> ret;
+	std::vector<int> ret;
 	int tartgetnumber = circ.at(i).at(j);
 
 	for(size_t k=0; k < circ.size(); k++)
@@ -165,7 +165,7 @@ void circuitmatrix::removeEmptyRows()
 	}
 }
 
-void circuitmatrix::insertRows(int beforePosition, vector<qubitline>& rows)
+void circuitmatrix::insertRows(int beforePosition, std::vector<qubitline>& rows)
 {
 	circ.insert(circ.begin() + beforePosition, rows.begin(), rows.end());
 }
@@ -193,7 +193,7 @@ qubitline& circuitmatrix::at(int i)
 	return circ[i];
 }
 
-circuitmatrix::circuitmatrix(vector<qubitline> orig)
+circuitmatrix::circuitmatrix(std::vector<qubitline> orig)
 {
 	circ = orig;
 	init();

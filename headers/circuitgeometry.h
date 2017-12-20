@@ -1,7 +1,8 @@
 #ifndef CIRCUITGEOMETRY_H_
 #define CIRCUITGEOMETRY_H_
 
-#include "recycling/causalgraph.h"
+#include "recycling/recyclegate.h"
+#include "recycling/bfsstate.h"
 #include "geometry.h"
 #include "circuitmatrix.h"
 #include "gatenumbers.h"
@@ -24,9 +25,9 @@ public:
 
 	numberandcoordinate allpins;
     bool inputConnectionDown;
-    vector<vector<long > > lastIndex;
+    std::vector<std::vector<long > > lastIndex;
     //use a lastindex for duals
-    vector<long> lastDualIndices;
+    std::vector<long> lastDualIndices;
 
     bool useBridge;
 
@@ -45,9 +46,6 @@ public:
     void liCopyCurrsOverPrevs(int wire);
     void liAddPinPair(int wire, int ioIndex, int type);
 
-//    void addDual(circuitmatrix & circ, int ctrli, int ctrlj);
-    void addDual(causalgraph& causal, int opid);
-
     void addPinPair(int ioIndex, circuitmatrix & paramCirc, int i, int j);
     int getDepthShift();
     int getPrevHalfDelta(int direction);
@@ -57,8 +55,8 @@ public:
 //    void makeGeometryFromCircuit(circuitmatrix & paramCirc);
 //    void makeGeometryFromCircuit(causalgraph& causal, int minlevel, int maxlevel);
 //    void makeGeometryFromCircuit(causalgraph& causal, inputLevelInfo& mininfo, inputLevelInfo& maxinfo);
-    void makeGeometryFromCircuit(causalgraph& causal, bfsState& state);
-
+    void makeGeometryFromCircuit(bfsState& state);
+    void addDual(recyclegate* operationPtr);
 
 
 

@@ -6,8 +6,6 @@
 
 #include "gatenumbers.h"
 
-using namespace std;
-
 namespace DecompType{
 	enum Value { icm = 0, nonicm = 1, disticm = 2};
 }
@@ -15,7 +13,7 @@ namespace DecompType{
 class decomposition
 {
 public:
-	string name;
+	std::string name;
 
 	//int type;//0-icm, 1-nonicm, 2-disticm
 	DecompType::Value type;
@@ -23,12 +21,12 @@ public:
 	int nrAncilla;
 
 	//for icm
-	vector<int> inits;
-	vector<vector<int> > cnots;
-	vector<int> meas;
+	std::vector<int> inits;
+	std::vector<std::vector<int> > cnots;
+	std::vector<int> meas;
 
 	//for nonicm
-	vector<vector<int> > gates;
+	std::vector<std::vector<int> > gates;
 
 	void toString();
 

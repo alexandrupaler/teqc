@@ -3,9 +3,9 @@
 #include "gatenumbers.h"
 #include "cnotcounter.h"
 
-string qcircfilewriter::getQCircFileName(const char* basisfilename)
+std::string qcircfilewriter::getQCircFileName(const char* basisfilename)
 {
-	string ret(basisfilename);
+	std::string ret(basisfilename);
 	ret += ".tex";
 	return ret;
 }
@@ -74,21 +74,25 @@ void qcircfilewriter::writeQCircFile(FILE* pFile, circuitmatrix& circ)
 				fprintf(pFile, "\\measure{Z/X}");
 				wasmeasure = true;
 			}
-			else if(cmd == HGATE)
+			else if(cmd == 'h'/*HGATE*/)
 			{
 				fprintf(pFile, "\\gate{H}");
 			}
-			else if(cmd == TGATE)
+			else if(cmd == 't'/*TGATE*/)
 			{
 				fprintf(pFile, "\\gate{T}");
 			}
-			else if(cmd == PGATE)
+			else if(cmd == 'p'/*PGATE*/)
 			{
 				fprintf(pFile, "\\gate{P}");
 			}
-			else if(cmd == RGATE)
+			else if(cmd == 'r'/*RGATE*/)
 			{
 				fprintf(pFile, "\\gate{R}");
+			}
+			else if(cmd == 'v'/*RGATE*/)
+			{
+				fprintf(pFile, "\\gate{V}");
 			}
 			else if(cmd == CTRL)
 			{
@@ -97,7 +101,7 @@ void qcircfilewriter::writeQCircFile(FILE* pFile, circuitmatrix& circ)
 //				for(int k=0; k<circ.size(); k++)
 //					if(circ.at(k).at(j) == 2)
 //						d = abs(k-i) < abs(d) ? k-i : d;
-				vector<int> targets = circ.findTarget(i,j);
+				std::vector<int> targets = circ.findTarget(i,j);
 				//fprintf(pFile, "\\ctrl{%d}", findTarget(i, j));
 				fprintf(pFile, "\\control");
 
@@ -105,7 +109,7 @@ void qcircfilewriter::writeQCircFile(FILE* pFile, circuitmatrix& circ)
 				int maxpos = 0;
 				int maxneg = 0;
 
-				for(vector<int>::iterator it=targets.begin(); it!=targets.end(); it++)
+				for(std::vector<int>::iterator it=targets.begin(); it!=targets.end(); it++)
 				{
 					int dist = *it - i;
 					if(dist < 0 && dist < maxneg)
@@ -141,5 +145,4 @@ void qcircfilewriter::writeQCircFile(FILE* pFile, circuitmatrix& circ)
 	fprintf(pFile, "}\\end{figure}\n");
 
 	fprintf(pFile, "\\end{document}\n");
-	fclose(pFile);
 }

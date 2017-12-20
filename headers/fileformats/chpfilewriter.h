@@ -5,11 +5,9 @@
 #include <vector>
 #include "circuitmatrix.h"
 
-using namespace std;
-
 class chpfilewriter{
 public:
-	static string getCHPFileName(const char* basisfilename);
+	static std::string getCHPFileName(const char* basisfilename);
 	void writeCHPFile(FILE* file, circuitmatrix& circ);
 };
 

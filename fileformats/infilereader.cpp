@@ -1,34 +1,35 @@
-#include <stdio.h>
-#include <vector>
+#include <fstream>
 
-#include "gatenumbers.h"
 #include "fileformats/infilereader.h"
-#include "fileformats/generaldefines.h"
 
-using namespace std;
-
-vector<qubitline> infilereader::readInFile(FILE* file)
+std::vector<std::string> infilereader::readInFile(char* fname)
 {
-	int nrlines = -1;
-	int nrcols = -1;
+	std::vector<std::string> ret;
 
-	fscanf(file, "%d", &nrlines);
-	fscanf(file, "%d", &nrcols);
+	std::ifstream ifs (fname, std::ifstream::in);
 
-	vector<qubitline> circuit(nrlines);
+	std::string line;
 
-	for(int i=0; i<nrlines; i++)
+	//citeste inputuri
+	getline(ifs, line);
+
+	ret.push_back(line);
+
+	getline(ifs, line);
+
+	ret.push_back(line);
+
+	while(ifs.good())
 	{
-		//circuit[i].reserve(nrcols);
-		circuit[i].resize(nrcols, EMPTY);
+		std::string line2;
+		getline(ifs, line2);
 
-		for(int j=0; j<nrcols; j++)
+		if(line2.size() == 0)
 		{
-			int v = EMPTY;
-			fscanf(file, "%d", &v);
-			circuit[i][j] = v;
+			continue;
 		}
+		ret.push_back(line2);
 	}
 
-	return circuit;
+	return ret;
 }

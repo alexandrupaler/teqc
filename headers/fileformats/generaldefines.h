@@ -3,12 +3,10 @@
 
 #include <vector>
 
-using namespace std;
-
 //the underlying datastructure for qubitlines and filelines is the same
 //but, the main difference is their interpretation
-typedef vector<int> qubitline;
-typedef vector<long> fileline;
+typedef std::vector<int> qubitline;
+typedef std::vector<long> fileline;
 
 //ugly
 #define GATENUMBERSDB "headers/gatenumbers.h"

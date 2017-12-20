@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 
-using namespace std;
-
 /**
  * The class is used for writing files containing distillation box coordinates
  */
@@ -16,7 +14,7 @@ public:
 	 * @param basisfilename the file name that will be extended by appending the extension
 	 * @return the file name
 	 */
-	static string getBoundingBoxFileName(const char* basisfilename);
+	static std::string getBoundingBoxFileName(const char* basisfilename);
 
 	/**
 	 * Write a bounding box to the file

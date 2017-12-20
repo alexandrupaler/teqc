@@ -3,8 +3,6 @@
 
 #include "astar/astarpoint.h"
 
-using namespace std;
-
 void Point::init()
 {
 	parent = NULL;
@@ -111,7 +109,7 @@ int Point::getPriority()
 	return blockPriority;
 }
 
-void Point::setWalkAndPriority(int walk, int priority, string journalMessage)
+void Point::setWalkAndPriority(int walk, int priority, std::string journalMessage)
 {
 	this->walkable = walk;
 	this->blockPriority = priority;
@@ -125,7 +123,7 @@ void Point::setWalkAndPriority(int walk, int priority, string journalMessage)
 
 void Point::printBlockJournal()
 {
-	for(list<string>::iterator it = blockJournal.begin();
+	for(std::list<std::string>::iterator it = blockJournal.begin();
 			it != blockJournal.end(); it++)
 	{
 		printf("%s\n", it->c_str());

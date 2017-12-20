@@ -22,26 +22,26 @@ bool geometry::removeSegment(int idx1, int idx2)
 		return false;
 	}
 
-	pair<long, long> s1 = computePair(idx1, idx2);
-	string key = computeKey(s1);
+	std::pair<long, long> s1 = computePair(idx1, idx2);
+	std::string key = computeKey(s1);
 
 	//do not assume the segment exists
-	map<string, long>::iterator it = segMap.find(key);
+	std::map<std::string, long>::iterator it = segMap.find(key);
 	if(it == segMap.end())
 	{
 		return false;
 	}
 
-	vector<pair<long, long> >::iterator it2 = find(segs.begin(), segs.end(), s1);
+	std::vector<std::pair<long, long> >::iterator it2 = find(segs.begin(), segs.end(), s1);
 	segs.erase(it2);
 	segMap.erase(it);
 
 	return true;
 }
 
-pair<long, long> geometry::computePair(int idx1, int idx2)
+std::pair<long, long> geometry::computePair(int idx1, int idx2)
 {
-	pair<long, long> s1;
+	std::pair<long, long> s1;
 
 
 	//indicele mic e primul, al doilea e indicele mare
@@ -51,10 +51,10 @@ pair<long, long> geometry::computePair(int idx1, int idx2)
 	return s1;
 }
 
-string geometry::computeKey(pair<long, long>& p)
+std::string geometry::computeKey(std::pair<long, long>& p)
 {
 	/*new linear search*/
-	string key;
+	std::string key;
 	char numstr[100]; // enough to hold all numbers up to 64-bits
 	sprintf(numstr, "%ld,%ld", p.first, p.second);
 	key = key + numstr;
@@ -70,15 +70,15 @@ bool geometry::addSegment(int idx1, int idx2)
 		return false;
 	}
 
-	pair<long, long> s1 = computePair(idx1, idx2);
+	std::pair<long, long> s1 = computePair(idx1, idx2);
 
 	/*new linear search*/
-	string key = computeKey(s1);
+	std::string key = computeKey(s1);
 //	char numstr[100]; // enough to hold all numbers up to 64-bits
 //	sprintf(numstr, "%d,%d", s1.first, s1.second);
 //	key = key + numstr;
 
-	map<string, long>::iterator it = segMap.find(key);
+	std::map<std::string, long>::iterator it = segMap.find(key);
 	if(it != segMap.end())
 	{
 		return false;
@@ -94,7 +94,7 @@ bool geometry::addSegment(int idx1, int idx2)
 int geometry::addCoordinate(convertcoordinate& coord)
 {
 	/*new linear search*/
-	string key = coord.toString(',');
+	std::string key = coord.toString(',');
 //	for(int i=0; i<3; i++)
 //	{
 //		char numstr[21]; // enough to hold all numbers up to 64-bits
@@ -102,7 +102,7 @@ int geometry::addCoordinate(convertcoordinate& coord)
 //		key = key + numstr;
 //	}
 
-	map<string, long>::iterator it = coordMap.find(key);
+	std::map<std::string, long>::iterator it = coordMap.find(key);
 	if(it != coordMap.end())
 	{
 		return it->second;

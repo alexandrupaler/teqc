@@ -1,3 +1,5 @@
+%!PS
+%%BoundingBox: 0 0 390 300
 /dim 30 def
 /d1 dim def
 /d2 dim 2 div def
@@ -44,18 +46,13 @@
 
 /wire{
 	/value exch def
-	currentpoint
-	dim 0 rmoveto
-	
 	0 d2 neg rmoveto
 	value dim mul 0 rlineto
 	value dim mul neg d2 rmoveto
-	moveto
 }def
 
 /measure{
 	/value exch def
-	currentpoint	
 	0 d4 neg rmoveto
 	0 d2 neg rlineto
 	d4 2 div 0 rmoveto
@@ -70,7 +67,6 @@
 
 	d4 neg d2 rmoveto	%from text
 	d4 neg d4 rmoveto %from lines
-	moveto
 }def
 
 /back{
@@ -115,3 +111,16 @@
 }def
 
 newpath
+30 285 moveto
+n 9 wire n n n n n n n n target n (Z) measure n back 
+(+) ket n 9 wire n n n control 6 qwx n n n n n n (Y) measure n back 
+(+) ket n 9 wire n n n n control 5 qwx n n n n n (Y) measure n back 
+(0) ket n 9 wire n target n control 3 qwx n target n target n n n n n (Y) measure n back 
+(+) ket n 9 wire n n n n n control 3 qwx n n n n (Y) measure n back 
+(0) ket n 9 wire n n target n target n n target n n n n (Y) measure n back 
+(0) ket n 9 wire n n target n n target n target n n n n (Y) measure n back 
+(0) ket n 9 wire n n n target n target n target n n n n (Y) measure n back 
+(+) ket n 9 wire n control -5 qwx n n n n n n n control -8 qwx n n back 
+closepath
+lw setlinewidth
+stroke

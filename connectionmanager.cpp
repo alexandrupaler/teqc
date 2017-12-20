@@ -76,7 +76,7 @@ bool connectionManager::assignOperationToConnection(int operationId, int boxType
 	return false;
 }
 
-void connectionManager::removeConnections(int boxType, vector<int>& operationIds)
+void connectionManager::removeConnections(int boxType, std::vector<int>& operationIds)
 {
 	for(size_t i=0; i<operationIds.size(); i++)
 	{
@@ -93,9 +93,9 @@ void connectionManager::releaseIfNotUsed(long inputTimeCoordinate, long connecti
 {
 	for(int boxType=0; boxType<2; boxType++)
 	{
-		set<size_t> toRelease;
+		std::set<size_t> toRelease;
 
-		for(set<size_t>::iterator it = pool.toBeAvailable[boxType].begin();
+		for(std::set<size_t>::iterator it = pool.toBeAvailable[boxType].begin();
 				it != pool.toBeAvailable[boxType].end(); it++)
 		{
 			/*compute connection pin coordinates based on heuristic and depth*/
@@ -118,7 +118,7 @@ void connectionManager::releaseIfNotUsed(long inputTimeCoordinate, long connecti
 			}
 		}
 
-		for(set<size_t>::iterator it = toRelease.begin();
+		for(std::set<size_t>::iterator it = toRelease.begin();
 					it != toRelease.end(); it++)
 		{
 			int connNr = *it;
@@ -149,14 +149,14 @@ pinpair connectionManager::getConnectionPinPair(int connNr, long time, long heig
 	return newPins;
 }
 
-void connectionManager::updateConnections(long timeWhenPoolEnds, long heightIncrement, vector<pinpair>& toconn)
+void connectionManager::updateConnections(long timeWhenPoolEnds, long heightIncrement, std::vector<pinpair>& toconn)
 {
-	set<size_t> usedConnNrs = pool.getAllUnavailable();
+	std::set<size_t> usedConnNrs = pool.getAllUnavailable();
 
 	long timeCoordinate = timeWhenPoolEnds;
 //	long heightIncrement = heuristic->connectionHeight;
 
-	for(set<size_t>::iterator it = usedConnNrs.begin();
+	for(std::set<size_t>::iterator it = usedConnNrs.begin();
 			it != usedConnNrs.end(); it++)
 	{
 		size_t connNr = *it;
@@ -175,7 +175,7 @@ void connectionManager::updateConnections(long timeWhenPoolEnds, long heightIncr
 		/*
 		 * form pairs
 		 */
-		vector<pinpair> pairs = formPairs(oldPins, newPins);
+		std::vector<pinpair> pairs = formPairs(oldPins, newPins);
 
 		/*
 		 * insertion sort depending on distance
@@ -187,7 +187,7 @@ void connectionManager::updateConnections(long timeWhenPoolEnds, long heightIncr
 		 * will be filtered when the connections are computed
 		 * in pinConnector (connectpins)
 		 */
-		vector<pinpair>::iterator iti = toconn.begin();// + startInsPos;
+		std::vector<pinpair>::iterator iti = toconn.begin();// + startInsPos;
 		for( ; iti != toconn.end(); iti++)
 		{
 			int distCurr = iti->minDistBetweenPins();
@@ -214,11 +214,12 @@ void connectionManager::updateConnections(long timeWhenPoolEnds, long heightIncr
 //				pairs[1].getPinDetail(DESTPIN).coord.toString(',').c_str());
 	}
 }
-bool connectionManager::finaliseAssignedConnections(bfsState& state, vector<pinpair>& circPins, vector<pinpair>& constructedListOfConnections)
+bool connectionManager::finaliseAssignedConnections(bfsState& state, std::vector<pinpair>& circPins,
+		std::vector<pinpair>& constructedListOfConnections)
 {
-	vector<int> toRemOperationIds[2];
+	std::vector<int> toRemOperationIds[2];
 
-	for(map<int,int>::iterator it = state.operationIdToCircuitPinIndex.begin();
+	for(std::map<int, int>::iterator it = state.operationIdToCircuitPinIndex.begin();
 			it != state.operationIdToCircuitPinIndex.end(); it++)
 	{
 		int operationId = it->first;
@@ -241,7 +242,7 @@ bool connectionManager::finaliseAssignedConnections(bfsState& state, vector<pinp
 
 		int boxType = circ.getType();
 
-		vector<pinpair> pairs = formPairs(dist, circ);
+		std::vector<pinpair> pairs = formPairs(dist, circ);
 
 		constructedListOfConnections.insert(constructedListOfConnections.end(), pairs.begin(), pairs.end());
 
@@ -264,9 +265,9 @@ bool connectionManager::finaliseAssignedConnections(bfsState& state, vector<pinp
 	return true;
 }
 
-vector<pinpair> connectionManager::formPairs(pinpair& source, pinpair& destination)
+std::vector<pinpair> connectionManager::formPairs(pinpair& source, pinpair& destination)
 {
-	vector<pinpair> ret;
+	std::vector<pinpair> ret;
 
 	pinpair pair1;
 	pair1.setPinDetail(SOURCEPIN, source.getPinDetail(0));

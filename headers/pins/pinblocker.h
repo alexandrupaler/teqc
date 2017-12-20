@@ -5,8 +5,6 @@
 
 #include "pins/pinblockjournalentry.h"
 
-using namespace std;
-
 struct pinblocker
 {
 	int offset;
@@ -21,7 +19,7 @@ struct pinblocker
 	int blockId;
 	int blockType;
 
-	static vector<long> availableIds;
+	static std::vector<long> availableIds;
 	static long maxId;
 
 	long getNextAvailableId();

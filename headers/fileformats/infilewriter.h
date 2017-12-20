@@ -6,12 +6,13 @@
 
 #include "fileformats/generaldefines.h"
 
-using namespace std;
-
+/**
+ * NOT UPDATED TO INFILEREADER
+ */
 class infilewriter{
 public:
-	void writeInFile(FILE* file, vector<qubitline>& circuit);
-	static string getInFileName(const char* basefilename);
+	void writeInFile(FILE* file, std::vector<qubitline>& circuit);
+	static std::string getInFileName(const char* basefilename);
 };
 
 #endif /* INFILEWRITER_H_ */

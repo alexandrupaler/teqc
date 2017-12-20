@@ -3,9 +3,9 @@
 
 #include "convertcoordinate.h"
 
-string convertcoordinate::toString(char separator)
+std::string convertcoordinate::toString(char separator)
 {
-	stringstream ss;
+	std::stringstream ss;
 	ss << values[0] << separator << values[1] << separator << values[2];
 
 	return ss.str();

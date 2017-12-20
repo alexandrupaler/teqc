@@ -6,8 +6,6 @@
 #include <string>
 #include "boxworld2.h"
 
-using namespace std;
-
 /**
  * The class is used for writing files containing distillation box coordinates
  */
@@ -19,7 +17,7 @@ public:
 	 * @param numberofschedule box coordinates are the result of distillation schedulers, which can be numbered
 	 * @return the file name
 	 */
-	static string getBoxCoordFileName(const char* basisfilename, int numberofschedule);
+	static std::string getBoxCoordFileName(const char* basisfilename, int numberofschedule);
 
 	/**
 	 * Write the distillation box coordinates to a file
@@ -28,7 +26,7 @@ public:
 	 * @param boxCoords a vector of boxcoord that represents the individual distillation boxes
 	 * @param numberofschedule the number of the schedule, should correspond to the getBoxCoordFileName() method
 	 */
-	void writeBoxCoordFile(FILE* file, vector<vector<int> >& boxSize, vector<boxcoord>& boxCoords, int numberofschedule);
+	void writeBoxCoordFile(FILE* file, std::vector<std::vector<int> >& boxSize, std::vector<boxcoord>& boxCoords, int numberofschedule);
 };
 
 

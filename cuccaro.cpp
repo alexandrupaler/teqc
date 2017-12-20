@@ -4,7 +4,7 @@
 
 #include "cuccaro.h"
 
-string cuccaro::cnot(int c, int t)
+std::string cuccaro::cnot(int c, int t)
 {
 	char g[1024];
 	sprintf(g, "c %d %d\n", c, t);
@@ -12,7 +12,7 @@ string cuccaro::cnot(int c, int t)
 	return g;
 }
 
-string cuccaro::tof(int c1, int c2, int t)
+std::string cuccaro::tof(int c1, int c2, int t)
 {
 	char g[2014];
 	sprintf(g, "T %d %d %d\n", c1, c2, t);
@@ -20,7 +20,7 @@ string cuccaro::tof(int c1, int c2, int t)
 	return g;
 }
 
-string cuccaro::xnot(int t)
+std::string cuccaro::xnot(int t)
 {
 	char g[1024];
 	sprintf(g, "X %d\n", t);
@@ -38,23 +38,23 @@ int cuccaro::a(int i)
 	return 2*i;// + 1;//+1 because of indexing from 1
 }
 
-vector<string> cuccaro::makeCircuit(int nrb, int doxnot)
+std::vector<std::string> cuccaro::makeCircuit(int nrb, int doxnot)
 {
 	circuit.clear();
 
-	int total = 2*nrb;//doua numere cu nrb biti
+	int total = 2 * nrb;//doua numere cu nrb biti
 
 	//positions of ancilla and sum bits
 	int ancilla = total;// + 1;//+1 because of indexing from 1
 	int sum = total + 1;//+1 because of indexing from 1
 
-	string input(total + 2, '-');
+	std::string input(total + 2, '-');
 	input[sum] = '0';
 	input = "in " + input;
 	circuit.push_back(input);
 
-	string output(total + 2, '-');
-	output[ancilla] = '1';
+	std::string output(total + 2, '-');
+	output[ancilla] = 'z';//changed 1 to z? 12.04.2017
 	output = "out " + output;
 	circuit.push_back(output);
 

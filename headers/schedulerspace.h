@@ -11,9 +11,7 @@
 /**
  * An interval is a pair of integers, with .firsts < .second
  */
-typedef pair<int, int> interval;
-
-using namespace std;
+typedef std::pair<int, int> interval;
 
 #define NOSPACE -999
 #define HEIGHTINTERVALS true
@@ -57,9 +55,9 @@ public:
 	 * @param intervalLength the length of the sub interval
 	 * @return the collection of the remaining intervals
 	 */
-	vector<pair<int, int> > splitInterval(pair<int, int>& pai, int boxPosition, int intervalLength);
+	std::vector<std::pair<int, int> > splitInterval(std::pair<int, int>& pai, int boxPosition, int intervalLength);
 
-	void printInterval(pair<int,int>& it);
+	void printInterval(std::pair<int,int>& it);
 
 	/**
 	 * Replaces an interval on a specified line/column with a collection of intervals
@@ -69,14 +67,14 @@ public:
 	 * @param heightOrWidth true indicates that a column interval (height axis)
 	 * false indicates that a line interval (width axis) will be replaced
 	 */
-	void replaceInterval(vector<interval> prs, int pos, int collectionindex, bool heightOrWidth);
+	void replaceInterval(std::vector<interval> prs, int pos, int collectionindex, bool heightOrWidth);
 
 //debugging purposes only?
 	int getNumberOfIntervals(int index, bool heightOrWidth);
 
-	pair<int,int> getHeightInterval(int widthindex, int pos){return *(freeSpaceOnHeight[widthindex].begin() + pos);}
+	std::pair<int,int> getHeightInterval(int widthindex, int pos){return *(freeSpaceOnHeight[widthindex].begin() + pos);}
 
-	pair<int,int> getWidthInterval(int heightindex, int pos){return *(freeSpaceOnWidth[heightindex].begin() + pos);}
+	std::pair<int,int> getWidthInterval(int heightindex, int pos){return *(freeSpaceOnWidth[heightindex].begin() + pos);}
 
 	/**
 	 * Searches for a large enough interval on a specified column (height axis) that contains
@@ -91,7 +89,7 @@ public:
 	 * @param nrPossiblePositions the number of positions the sub interval can occupy
 	 * @return the beginning coordinate of the interval that can hold the sub interval, NOSPACE otherwise
 	 */
-	int findHeightAxisPosition(vector<interval>::iterator& heightInterval, int positionCircuitWidthAxis, int reqHeight, int& nrPossiblePositions);
+	int findHeightAxisPosition(std::vector<interval>::iterator& heightInterval, int positionCircuitWidthAxis, int reqHeight, int& nrPossiblePositions);
 
 	/**
 	 * Checks that a sub interval of a specified length and starting from a
@@ -146,8 +144,8 @@ public:
 	bool computeCoordinates(int reqWidth, int reqHeight, int positionWidthAxis, int& positionHeightAxis);
 
 protected:
-	map<int, vector<interval> > freeSpaceOnWidth;
-	map<int, vector<interval> > freeSpaceOnHeight;
+	std::map<int, std::vector<interval> > freeSpaceOnWidth;
+	std::map<int, std::vector<interval> > freeSpaceOnHeight;
 };
 
 #endif /* SCHEDULERSPACE_H_ */

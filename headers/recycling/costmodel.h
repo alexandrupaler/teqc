@@ -3,8 +3,6 @@
 
 #include <map>
 
-using namespace std;
-
 struct costs
 {
 	int gatecost;
@@ -14,7 +12,7 @@ struct costs
 class costmodel
 {
 public:
-	map<char, costs> gateTypeCosts;
+	std::map<char, costs> gateTypeCosts;
 };
 
 #endif

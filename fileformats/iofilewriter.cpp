@@ -3,17 +3,15 @@
 #include "numberandcoordinate.h"
 #include "fileformats/iofilewriter.h"
 
-using namespace std;
-
-string iofilewriter::getIOFileName(const char* basisfilename)
+std::string iofilewriter::getIOFileName(const char* basisfilename)
 {
-	string ret(basisfilename);
+	std::string ret(basisfilename);
 	ret += ".io";
 	return ret;
 }
 
 //void iofilewriter::writeIOFile(FILE* file, vector<vector<int> >& allpins, map<int, int>& inputs)
-void iofilewriter::writeIOFile(FILE* file, vector<pinpair>& allpins)
+void iofilewriter::writeIOFile(FILE* file, std::vector<pinpair>& allpins)
 {
 	for(size_t i=0; i < allpins.size(); i++)
 	{

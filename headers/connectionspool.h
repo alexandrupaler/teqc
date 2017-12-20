@@ -4,34 +4,29 @@
 #include <vector>
 #include <set>
 
-using namespace std;
-
 struct connectionsPool
 {
 	/*
 	 * List of available connections
 	 */
-//	vector<size_t> available;
-	vector<size_t> available;
+	std::vector<size_t> available;
 
 	/*
 	 * Lists of connections assigned to boxes (of both types),
 	 * but not connected to the circuit
 	 */
-	vector<size_t> reservedButNotAssigned[2];
+	std::vector<size_t> reservedButNotAssigned[2];
 
 	/*
 	 * Set of connections connected to the circuit
 	 * The connections need to be computed by A*
 	 */
-//	set<size_t> assigned;
-	set<size_t> assigned[2];
+	std::set<size_t> assigned[2];
 
 	/*
 	 * Set of computed connections, which could be available in future iterations
 	 */
-//	set<size_t> toBeAvailable;
-	set<size_t> toBeAvailable[2];
+	std::set<size_t> toBeAvailable[2];
 
 	/*
 	 * Maximum number of connections of a certain type in the pool/rail
@@ -45,7 +40,7 @@ struct connectionsPool
 
 	connectionsPool();
 
-	set<size_t> getAllUnavailable();
+	std::set<size_t> getAllUnavailable();
 
 	void preReleaseConnection(int boxType, size_t connNr);
 

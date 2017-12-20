@@ -15,5 +15,5 @@ long pinblocker::getNextAvailableId()
 	return id;
 }
 
-vector<long> pinblocker::availableIds;
+std::vector<long> pinblocker::availableIds;
 long pinblocker::maxId = 1;

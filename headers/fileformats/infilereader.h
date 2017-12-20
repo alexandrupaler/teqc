@@ -2,12 +2,11 @@
 #define INFILEREADER_H_
 
 #include <vector>
-#include "fileformats/generaldefines.h"
+#include <string>
 
 class infilereader{
 public:
-	vector<qubitline> readInFile(FILE* file);
+	std::vector<std::string> readInFile(char* fname);
 };
-
 
 #endif /* INFILEREADER_H_ */

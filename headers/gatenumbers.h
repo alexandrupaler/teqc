@@ -27,19 +27,17 @@
 
 #include <set>
 
-using namespace std;
-
 class gatenumbers{
 
 	/**
 	 * The set of values that are interpreted as qubit measurements.
 	 */
-	set<int> measurements;
+	std::set<int> measurements;
 
 	/**
 	 * The set of a values that are interpreted as qubit initialisations.
 	 */
-	set<int> initialisations;
+	std::set<int> initialisations;
 
 private:
 	gatenumbers();

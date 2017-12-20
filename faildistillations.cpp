@@ -6,10 +6,8 @@
 #include "fileformats/iofilereader.h"
 #include "faildistillations.h"
 
-using namespace std;
-
 void faildistillations::selectDistillationForCircuitInput (const char* circIoFile,
-		const char* allPinsFile, double afail, double yfail, vector<pinpair>& toconn)
+		const char* allPinsFile, double afail, double yfail, std::vector<pinpair>& toconn)
 {
 	FILE* file = fopen(circIoFile, "r");
 	iofilereader ior;
@@ -91,9 +89,9 @@ int faildistillations::decide(double prob, numberandcoordinate& boxIOs, int orig
  * 	This method is used in order to generate connections which do not generate intersecting geometries (see connectpins)
  */
 
-vector<pair<int, int> > faildistillations::computePinIndexPairs(numberandcoordinate& boxIOs, int boxIndex)
+std::vector<std::pair<int, int> > faildistillations::computePinIndexPairs(numberandcoordinate& boxIOs, int boxIndex)
 {
-	vector<pair<int, int> > ret;
+	std::vector<std::pair<int, int> > ret;
 
 	bool horizontalAPins = false;
 //	int firstPinOffset = 0;
@@ -108,7 +106,7 @@ vector<pair<int, int> > faildistillations::computePinIndexPairs(numberandcoordin
 
 	for(int i=0; i<2; i++)
 	{
-		pair<int, int> p;
+		std::pair<int, int> p;
 		int boxpin = ((boxIOs.getIOType(boxIndex) == ATYPE && horizontalAPins) ? 1 - i : i);
 
 		p.first = i;
@@ -120,7 +118,8 @@ vector<pair<int, int> > faildistillations::computePinIndexPairs(numberandcoordin
 	return ret;
 }
 
-int faildistillations::storeConnectEntry(numberandcoordinate& circIOs, int IOIndex, numberandcoordinate& boxIOs, int boxIndex, vector<pinpair>& toconn)
+int faildistillations::storeConnectEntry(numberandcoordinate& circIOs, int IOIndex,
+		numberandcoordinate& boxIOs, int boxIndex, std::vector<pinpair>& toconn)
 {
 	printf("conn io%d box%d \n", IOIndex, boxIndex);
 
@@ -131,7 +130,7 @@ int faildistillations::storeConnectEntry(numberandcoordinate& circIOs, int IOInd
 		return toconn.size();//nothing changed, nothing added
 	}
 
-	vector<pair<int, int> > pinIndices = computePinIndexPairs(boxIOs, boxIndex);
+	std::vector<std::pair<int, int> > pinIndices = computePinIndexPairs(boxIOs, boxIndex);
 
 	for (int i=0; i<2; i++)
 	{
@@ -150,7 +149,8 @@ int faildistillations::storeConnectEntry(numberandcoordinate& circIOs, int IOInd
 	return toconn.size();
 }
 
-int faildistillations::decideAndStore(double failprob, numberandcoordinate& circIOs, int IOIndex, numberandcoordinate& boxIOs, int& lastpos, vector<pinpair>& toconn)
+int faildistillations::decideAndStore(double failprob, numberandcoordinate& circIOs,
+		int IOIndex, numberandcoordinate& boxIOs, int& lastpos, std::vector<pinpair>& toconn)
 {
 	int currlastpos = NOBOXESAVAIL;
 
@@ -174,7 +174,7 @@ int faildistillations::decideAndStore(double failprob, numberandcoordinate& circ
  * once an input of corresponding type was found, the decideAndStore method is called
  */
 void faildistillations::selectDistillationForCircuitInput(numberandcoordinate& circIOs,
-		numberandcoordinate& boxIOs, double afail, double yfail, vector<pinpair>& toconn)
+		numberandcoordinate& boxIOs, double afail, double yfail, std::vector<pinpair>& toconn)
 {
 	//lastpos stores the index of the last used additional distillation box
 	//-2 because in decide the loop begins with +2

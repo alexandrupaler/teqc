@@ -24,8 +24,6 @@
 #define ENFORCE_BLOCK true
 #define REMOVE_BLOCK false
 
-using namespace std;
-
 class connectpins
 {
 public:
@@ -41,7 +39,7 @@ public:
 public:
 	bool processPins(char* fname, int method);
 
-	bool processPins(vector<pinpair>& pins, int method);
+	bool processPins(std::vector<pinpair>& pins, int method);
 
 	int getCircuitPinIndex(convertcoordinate& coord);
 
@@ -55,9 +53,9 @@ public:
 
 	bool connectWithAStar(pinpair& coordline);
 
-	void blockPins(vector<pinpair>& pins);
+	void blockPins(std::vector<pinpair>& pins);
 
-	void unblockPins(vector<pinpair>& pins);
+	void unblockPins(std::vector<pinpair>& pins);
 
 	void blockCoordinates(pindetails& detail);
 
@@ -67,7 +65,7 @@ public:
 
 	void setWalkable(pindetails& detail, bool enforce, int whichBlockType/*, int walk, bool force*/);
 
-	void filterAndAddToCorners(vector<convertcoordinate>& corners, Point* current);
+	void filterAndAddToCorners(std::vector<convertcoordinate>& corners, Point* current);
 
 	/*Debugging*/
 	geometry* whereToDebug(int blockType);

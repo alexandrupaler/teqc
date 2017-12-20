@@ -4,25 +4,22 @@
 #include <string>
 #include <vector>
 
-
-using namespace std;
-
 class cuccaro{
 private:
-	vector<string> circuit;
+	std::vector<std::string> circuit;
 
 public:
-	string cnot(int c, int t);
+	std::string cnot(int c, int t);
 
-	string tof(int c1, int c2, int t);
+	std::string tof(int c1, int c2, int t);
 
-	string xnot(int t);
+	std::string xnot(int t);
 
 	int b(int i);
 
 	int a(int i);
 
-	vector<string> makeCircuit(int nrb, int doxnot);
+	std::vector<std::string> makeCircuit(int nrb, int doxnot);
 };
 
 #endif /* CUCCARO_H_ */

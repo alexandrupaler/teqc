@@ -2,8 +2,6 @@
 #include "fileformats/generaldefines.h"
 #include "pins/pinconstants.h"
 
-using namespace std;
-
 Pathfinder::Pathfinder()
 {
 	this->boxworld = NULL;
@@ -20,11 +18,11 @@ void Pathfinder::clean()
 	closedList.clear();
 
 	//iterate over all values in grid and delete pointers
-	for (map<long, map<long, map<long, Point*> > >::iterator i = visited.begin(); i != visited.end() ; i++ )
+	for (std::map<long, std::map<long, std::map<long, Point*> > >::iterator i = visited.begin(); i != visited.end() ; i++ )
 	{
-		for (map<long, map<long, Point*> >::iterator j = i->second.begin(); j != i->second.end() ; j++ )
+		for (std::map<long, std::map<long, Point*> >::iterator j = i->second.begin(); j != i->second.end() ; j++ )
 		{
-			for (map<long, Point*>::iterator k = j->second.begin(); k != j->second.end() ; k++ )
+			for (std::map<long, Point*>::iterator k = j->second.begin(); k != j->second.end() ; k++ )
 			{
 				delete k->second;
 			}
@@ -54,8 +52,7 @@ bool Pathfinder::checkCondition(Point* p1, Point* p2, int axes[])
 	return ret;
 }
 
-//vector<Point*> Pathfinder::aStar(convertcoordinate& circ, convertcoordinate& box, int axes[], unsigned int steps)
-PathfinderCode Pathfinder::aStar(Point* start, Point* end, int axes[], unsigned int steps, vector<Point*>& path)
+PathfinderCode Pathfinder::aStar(Point* start, Point* end, int axes[], unsigned int steps, std::vector<Point*>& path)
 {
     Point* current;
     Point* child;
@@ -66,7 +63,7 @@ PathfinderCode Pathfinder::aStar(Point* start, Point* end, int axes[], unsigned 
     cleanList(openList);
     cleanList(closedList);
 
-    list<Point*>::iterator i;
+    std::list<Point*>::iterator i;
 
     if(end->coord[CIRCUITDEPTH] < start->coord[CIRCUITDEPTH])
 	{
@@ -182,9 +179,9 @@ PathfinderCode Pathfinder::aStar(Point* start, Point* end, int axes[], unsigned 
     return PathFinderOK;
 }
 
-void Pathfinder::cleanList(list<Point*>& clist)
+void Pathfinder::cleanList(std::list<Point*>& clist)
 {
-    list<Point*>::iterator i;
+	std::list<Point*>::iterator i;
 
 	for (i = clist.begin(); i != clist.end(); ++ i)
 	{

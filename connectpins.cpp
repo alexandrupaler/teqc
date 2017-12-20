@@ -9,8 +9,6 @@
 
 #include "pins/pinconstants.h"
 
-using namespace std;
-
 int connectpins::getCircuitPinIndex(convertcoordinate& coord)
 {
 	//assumes coordinates are only 0+2, 4+6, 8+10
@@ -89,7 +87,7 @@ bool connectpins::connectWithAStar(pinpair& coordline)
 			coordline.minDistBetweenPins());
 
 	int axes[] = {CIRCUITWIDTH, CIRCUITDEPTH, CIRCUITHEIGHT};
-	vector<Point*> path;
+	std::vector<Point*> path;
 	PathfinderCode err = PathFinderOtherErr;/*init err*/
 
 	//HEURISTIC: NUMBER OF STEPS TO TRY CONSTRUCT PATH *50
@@ -177,8 +175,8 @@ bool connectpins::connectWithAStar(pinpair& coordline)
 		/*
 		 * Generate the corners of the path
 		 */
-		vector<convertcoordinate> corners;
-		for(vector<Point*>::iterator it = path.begin(); it != path.end(); it++)
+		std::vector<convertcoordinate> corners;
+		for(std::vector<Point*>::iterator it = path.begin(); it != path.end(); it++)
 		{
 			filterAndAddToCorners(corners, *it);
 
@@ -209,7 +207,7 @@ bool connectpins::connectWithAStar(pinpair& coordline)
 		/*
 		 * Add  segments between the corners of the defect connection
 		 */
-		for(vector<convertcoordinate>::iterator it = corners.begin(); it != corners.end(); it++)
+		for(std::vector<convertcoordinate>::iterator it = corners.begin(); it != corners.end(); it++)
 		{
 			int idx = connectionsGeometry.addCoordinate(*it);
 
@@ -233,7 +231,7 @@ bool connectpins::connectWithAStar(pinpair& coordline)
 	return false;
 }
 
-void connectpins::filterAndAddToCorners(vector<convertcoordinate>& corners, Point* current)
+void connectpins::filterAndAddToCorners(std::vector<convertcoordinate>& corners, Point* current)
 {
 	//take the point instead
 	if (corners.size() >= 2)
@@ -283,7 +281,7 @@ bool connectpins::processPins(char* fname, int method)
 
 void connectpins::setWalkable(pindetails& detail, bool enforce, int whichBlockType)
 {
-	for(vector<pinblocker>::iterator it = detail.blocks.begin();
+	for(std::vector<pinblocker>::iterator it = detail.blocks.begin();
 			it != detail.blocks.end(); it++)
 	{
 		/*
@@ -417,9 +415,9 @@ int connectpins::debugSecondCoordinate(int blockType, int deb1, convertcoordinat
  * The coordinates of the pins are not walkable in astar
  * @param pins is the list of pins
  */
-void connectpins::blockPins(vector<pinpair>& pins)
+void connectpins::blockPins(std::vector<pinpair>& pins)
 {
-	for(vector<pinpair>::iterator it = pins.begin();
+	for(std::vector<pinpair>::iterator it = pins.begin();
 						it!=pins.end(); it++)
 	{
 		setWalkable(it->getPinDetail(SOURCEPIN), ENFORCE_BLOCK, WALKBLOCKED_OCCUPY);
@@ -430,9 +428,9 @@ void connectpins::blockPins(vector<pinpair>& pins)
 	}
 }
 
-void connectpins::unblockPins(vector<pinpair>& pins)
+void connectpins::unblockPins(std::vector<pinpair>& pins)
 {
-	for(vector<pinpair>::iterator it = pins.begin();
+	for(std::vector<pinpair>::iterator it = pins.begin();
 						it!=pins.end(); it++)
 	{
 		setWalkable(it->getPinDetail(SOURCEPIN), REMOVE_BLOCK, WALKBLOCKED_OCCUPY);
@@ -444,10 +442,10 @@ void connectpins::unblockPins(vector<pinpair>& pins)
 }
 
 
-bool connectpins::processPins(vector<pinpair>& pins, int method)
+bool connectpins::processPins(std::vector<pinpair>& pins, int method)
 {
 	int count = 0;
-	for(vector<pinpair>::iterator it = pins.begin();
+	for(std::vector<pinpair>::iterator it = pins.begin();
 			it != pins.end(); it++)
 	{
 		switch (method) {
@@ -481,7 +479,7 @@ bool connectpins::processPins(vector<pinpair>& pins, int method)
 	/**
 	 * Unblock the unblockable
 	 */
-	for(vector<pinpair>::iterator it = pins.begin(); it != pins.end(); it++)
+	for(std::vector<pinpair>::iterator it = pins.begin(); it != pins.end(); it++)
 	{
 		setWalkable(it->getPinDetail(SOURCEPIN), REMOVE_BLOCK, WALKBLOCKED_GUIDE);
 		setWalkable(it->getPinDetail(DESTPIN), REMOVE_BLOCK, WALKBLOCKED_GUIDE);

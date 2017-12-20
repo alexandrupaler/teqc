@@ -7,8 +7,6 @@
 #include <vector>
 #include <map>
 
-using namespace std;
-
 enum PathfinderCode {PathFinderOK,
 	PathFinderStartErr,
 	PathFinderStopErr,
@@ -24,11 +22,11 @@ public:
 
 	void clean();
 
-	void cleanList(list<Point*>& clist);
+	void cleanList(std::list<Point*>& clist);
 
 	void useBoxWorld(boxworld2* world);
 
-	PathfinderCode aStar(Point* start, Point* end, int axes[], unsigned int steps, vector<Point*>& path);
+	PathfinderCode aStar(Point* start, Point* end, int axes[], unsigned int steps, std::vector<Point*>& path);
 
 	Point* getOrCreatePoint(long x, long y, long z, bool checkAwayFromBox);
 
@@ -47,10 +45,10 @@ public:
 
     // Define the open and the close list
     // The set of currently discovered nodes still to be evaluated.
-    list<Point*> openList;
+	std::list<Point*> openList;
 
     //The set of nodes already evaluated
-    list<Point*> closedList;
+	std::list<Point*> closedList;
 
     //maps for memorising visited points
     std::map<long, std::map<long, std::map<long, Point*> > > visited;

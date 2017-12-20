@@ -4,8 +4,6 @@
 #include <string>
 #include "numberandcoordinate.h"
 
-using namespace std;
-
 /**
  * The class is used for writing files containing circuit geometries
  */
@@ -16,7 +14,7 @@ public:
 	 * @param basisfilename the file name that will be extended by appending the extension
 	 * @return the file name
 	 */
-	static string getGeomFileName(const char* basisfilename);
+	static std::string getGeomFileName(const char* basisfilename);
 
 	/**
 	 * Write a circuit geometry to a file
@@ -25,7 +23,7 @@ public:
 	 * @param segs a vector of index pairs referring to existing coordinates from the geometry
 	 * @param coords the vector of geometry vertices
 	 */
-	void writeGeomFile(FILE* f, vector<long>& io, vector<pair<long, long> >& segs, vector<convertcoordinate>& coords);
+	void writeGeomFile(FILE* f, std::vector<long>& io, std::vector<std::pair<long, long> >& segs, std::vector<convertcoordinate>& coords);
 };
 
 

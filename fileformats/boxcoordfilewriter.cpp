@@ -6,12 +6,12 @@
 /**
  * Uses the extension ".box.[scheduleNumber]"
  */
-string boxcoordfilewriter::getBoxCoordFileName(const char* basisfilename, int scheduleNumber)
+std::string boxcoordfilewriter::getBoxCoordFileName(const char* basisfilename, int scheduleNumber)
 {
-	string ret(basisfilename);
+	std::string ret(basisfilename);
 	char str[1024];
 	sprintf(str, "%d", scheduleNumber);
-	ret += ".box." + string(str);
+	ret += ".box." + std::string(str);
 	return ret;
 }
 
@@ -19,7 +19,8 @@ string boxcoordfilewriter::getBoxCoordFileName(const char* basisfilename, int sc
  * The file consists actually of a JSON where an object contains two fields, types and coords,
  * corresponding to the \p boxSize and \p boxCoords
  */
-void boxcoordfilewriter::writeBoxCoordFile(FILE* file, vector<vector<int> >& boxSize, vector<boxcoord>& boxCoords, int scheduleNumber)
+void boxcoordfilewriter::writeBoxCoordFile(FILE* file, std::vector<std::vector<int> >& boxSize,
+		std::vector<boxcoord>& boxCoords, int scheduleNumber)
 {
 	bool myisfirst = true;
 	fprintf(file, "var boxes%d={\"types\":[", scheduleNumber);
@@ -27,7 +28,7 @@ void boxcoordfilewriter::writeBoxCoordFile(FILE* file, vector<vector<int> >& box
 	fprintf(file, "[%d,%d,%d]],", boxSize[YTYPE][CIRCUITWIDTH], boxSize[YTYPE][CIRCUITDEPTH], boxSize[YTYPE][CIRCUITHEIGHT]);
 	fprintf(file, "\"coords\": [");
 
-	for(vector<boxcoord>::iterator it = boxCoords.begin(); it != boxCoords.end(); it++)
+	for(std::vector<boxcoord>::iterator it = boxCoords.begin(); it != boxCoords.end(); it++)
 	{
 		if (!myisfirst)
 			fprintf(file, ",");

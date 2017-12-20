@@ -6,8 +6,6 @@
 
 #include "pins/pinpair.h"
 
-using namespace std;
-
 #define TYPE 0
 #define INJNR 1
 #define ROWCOORD 2
@@ -46,7 +44,7 @@ public:
 	 */
 	int maxInjRow;
 
-	vector<pinpair> inputList;
+	std::vector<pinpair> inputList;
 
 	numberandcoordinate()
 	{
@@ -56,10 +54,10 @@ public:
 		maxInjRow = INT_MIN;
 	}
 
-	numberandcoordinate(vector<pinpair>& pins)
+	numberandcoordinate(std::vector<pinpair>& pins)
 	{
 		//slow. one by one. TODO: Replace entire class, do not use this method. Boxworld2
-		for(vector<pinpair>::iterator it = pins.begin(); it != pins.end(); it++)
+		for(std::vector<pinpair>::iterator it = pins.begin(); it != pins.end(); it++)
 		{
 			addEntry(*it);
 		}

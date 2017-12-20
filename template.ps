@@ -1,3 +1,6 @@
+%!PS
+%%BoundingBox: 0 0 7000 7000
+
 /dim 30 def
 /d1 dim def
 /d2 dim 2 div def
@@ -44,18 +47,13 @@
 
 /wire{
 	/value exch def
-	currentpoint
-	dim 0 rmoveto
-	
 	0 d2 neg rmoveto
 	value dim mul 0 rlineto
 	value dim mul neg d2 rmoveto
-	moveto
 }def
 
 /measure{
 	/value exch def
-	currentpoint	
 	0 d4 neg rmoveto
 	0 d2 neg rlineto
 	d4 2 div 0 rmoveto
@@ -70,7 +68,6 @@
 
 	d4 neg d2 rmoveto	%from text
 	d4 neg d4 rmoveto %from lines
-	moveto
 }def
 
 /back{
@@ -114,4 +111,16 @@
 	moveto
 }def
 
+%test
+%(Y) ket n 2 wire target n target n (X/Z) measure back
+%(A) ket n 10 wire  n control 1 qwx  -1 qwx back
+%n 10 wire control -2 qwx n target back
+
 newpath
+
+sc 6950 moveto
+
+
+%closepath
+%lw setlinewidth
+%stroke
