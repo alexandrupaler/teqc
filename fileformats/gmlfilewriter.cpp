@@ -140,13 +140,11 @@ void gmlfilewriter::writeGMLFile2(FILE* fileg, causalgraph& causal)
 	for(std::list<recyclegate*>::iterator it=causal.tmpCircuit.begin();
 			it!=causal.tmpCircuit.end(); it++)
 	{
-		for(std::map<int, recyclegate*>::iterator it2 = (*it)->willPush.begin();
-				it2 != (*it)->willPush.end(); it2++)
+		for(std::vector<recyclegate*>::iterator it2 = (*it)->willPush.begin();
+						it2 != (*it)->willPush.end(); it2++)
 		{
 			fprintf(fileg, "edge [\n");
-//			fprintf(fileg, " source %d\n target %d \n", (*it)->id, it2->second->id);
-			//use pointer as id?
-			fprintf(fileg, " source %d\n target %d \n", ids[*it], ids[it2->second]);
+			fprintf(fileg, " source %d\n target %d \n", ids[*it], ids[*it2]);
 
 			fprintf(fileg, "]\n");
 		}

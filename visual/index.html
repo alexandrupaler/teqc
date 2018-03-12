@@ -1,0 +1,69 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+<head>
+<title>Cluster</title>
+
+<style>
+hr {color:sienna;}
+body {margin:0; padding:0;}
+
+#menu
+{
+  position:absolute;
+  z-index:100;
+  background-color: red;
+  width:300px;
+  height:20px;
+  top: 0px;
+  left: 100px;
+  font-size: 12px;
+}
+
+h1
+{
+  font-size: 1em;
+}
+</style>
+
+<!--Prevent font boosting-->
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+<!--<script src="circuit.raw.js"></script>-->
+<script src="circuit.raw.js_1"></script>
+<script src="circuit.raw.js_2"></script>
+<script src="circuit.raw.js_3"></script>
+<script src="circuit.raw.js_4"></script>
+<script src="circuit.raw.in.geom.io.box.0"></script>
+
+<script src="libs/jquery-1.12.0.min.js"></script>
+<script src="libs/three.js"></script>
+<script src="libs/SVGRenderer.js"></script>
+<script src="libs/Projector.js"></script>
+<script src="libs/CanvasRenderer.js"></script>
+<script src="libs/Detector.js"></script>
+<script src="libs/BoxGeometry.js"></script>
+<script src="libs/TrackballControls.js"></script>
+</head>
+
+
+<body>
+<script src="libs/stats.js"></script>
+<script src="main.js"></script>
+
+<div id=menu name=menu>
+  Show: 
+  <input type=checkbox id="boxesChk" checked="checked" onclick="checkboxClick('boxesChk', boxesGeometry)" autocomplete="off">Boxes</input>
+  <input type=checkbox id="primalChk" checked="checked" onclick="checkboxClick('primalChk', primalGeometry)" autocomplete="off">Primal</input>
+  <input type=checkbox id="dualChk" checked="checked" onclick="checkboxClick('dualChk', dualGeometry)" autocomplete="off">Dual</input>
+</div>
+
+<div id=container name=container></div>
+
+
+</body>
+</html>

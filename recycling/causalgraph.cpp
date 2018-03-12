@@ -1,4 +1,3 @@
-
 #include <climits>
 #include <cmath>
 #include <algorithm>
@@ -6,6 +5,8 @@
 #include "gatenumbers.h"
 #include "recycling/causalgraph.h"
 #include "numberandcoordinate.h"
+
+#include "utils/trim.h"
 
 std::vector<recyclegate*> causalgraph::getRoots()
 {
@@ -57,89 +58,181 @@ bool causalgraph::stepwiseBfs(bfsState& state)
 	/*
 	 * Which Lines/Wires to Check
 	 */
-	state.initLinesToCheck();
+//	state.initLinesToCheck();
 	/*
 	 * Reset the inputLevel
 	 */
 	state.resetLevels();
 
 	/*
-	 * Determines if all graph elements until the lowest possible unscheduled
-	 * input were collected in toDraw and toSchedule
+	 * september 2017
+	 * A step is finished when all the inputs (scheduled or not) at a certain level were processed
 	 */
-	while(state.minLevelLinesToCheck.size() != 0)
+	bool finishedStep = (state.septBfs.size() == state.septLastIndex);
+
+	int currentIndex = state.septLastIndex;
+	while(!finishedStep)
 	{
-		//advance the minimum level
-		//get minimum level of current ids
-		long 	minLevel = LONG_MAX;
-		wireelement* minLevelPos = state.getMinLevelFromLinesToCheck(minLevel);
-//		int 	minLevelOperationId = state.currentIdProWire[minLevelPos];
-		recyclegate* minLevelOperationPtr = state.currentGateProWire[minLevelPos];
+		recyclegate* minLevelOperationPtr = state.septBfs[currentIndex];
+		long minLevel = minLevelOperationPtr->level;
 
-		/*
-		 * There is no minimum
-		 * bye bye - finished the entire circuit
-		 */
-		if(minLevel == LONG_MAX)
+		if(state.getMaximumInputLevel() != NOLEVEL && minLevel != state.getMaximumInputLevel())
 		{
-			state.setCircuitFinished(true);
-			break;
+			/*
+			 * an injection was found at the previous step
+			 * and the current level is higher
+			 */
+			finishedStep = true;
 		}
 
-		bool isInjection = (minLevelOperationPtr->type == AA || minLevelOperationPtr->type == YY);
-		bool wasScheduled = (state.scheduledInputs.find(minLevelOperationPtr) != state.scheduledInputs.end());
-
-		/*
-		 * If this is the first scheduled/unscheduled input, save its level
-		 */
-		if(isInjection && state.getMaximumInputLevel() == NOLEVEL)
+//		/*RANDOM RES ESTIMTOR
+//		 * 3 NOV
+//		 * take only one element for scheduling
+//		 */
+//		if(state.toDraw.size() > 0 && state.toScheduleInputs[0].size() != 0)
+//		{
+//			finishedStep = true;
+//			state.toScheduleInputs[0].clear();
+//		}
+		if(state.toScheduleInputs[0].size() != 0 || state.toScheduleInputs[1].size() != 0)
 		{
-			state.saveMaxLevel(minLevelOperationPtr->level);
-			printf("new inputLevel%ld\n", state.getMaximumInputLevel());
+			finishedStep = true;
 		}
 
-		if(state.getMinimumLevel() == NOLEVEL)
+		if(!finishedStep)
 		{
-			state.setMinimumLevel(minLevel);
-		}
+			//advance the index
+			currentIndex++;
 
-		/*
-		 * The conditions to add in toDraw or toSchedule
-		 */
-		if(state.getMaximumInputLevel() == NOLEVEL || minLevel <= state.getMaximumInputLevel())
-		{
+//			bool isInjection = (minLevelOperationPtr->type == AA || minLevelOperationPtr->type == YY);
+//			bool isInjection = (minLevelOperationPtr->type == 't' || minLevelOperationPtr->type == 'p');
+			bool isInjection = (minLevelOperationPtr->type == 't');
+			bool wasScheduled = (state.scheduledInputs.find(minLevelOperationPtr) != state.scheduledInputs.end());
+
+			/*
+			 * the first injection at a level is found
+			 * store the current level
+			 */
+			if(isInjection && state.getMaximumInputLevel() == NOLEVEL)
+			{
+				state.saveMaxLevel(minLevelOperationPtr->level);
+				printf("new inputLevel%ld\n", state.getMaximumInputLevel());
+			}
+
+			if(state.getMinimumLevel() == NOLEVEL)
+			{
+				state.setMinimumLevel(minLevel);
+			}
+
 			if(!isInjection || wasScheduled)
 			{
 				//can be drawn
 				state.toDraw.push_back(minLevelOperationPtr);
-
-				//advance on the wires having the operation with min level
-				for(std::set<wireelement*>::iterator it = state.minLevelLinesToCheck.begin();
-						it != state.minLevelLinesToCheck.end(); it++)
-				{
-					if(state.currentGateProWire[*it] == minLevelOperationPtr)
-					{
-						state.currentGateProWire[*it] = getSuccessorOnSameWire(state.currentGateProWire[*it], *it);
-					}
-				}
 			}
 			else
 			{
 				//cannot be drawn and needs scheduling
-				int boxType = (minLevelOperationPtr->type == AA ? ATYPE : YTYPE);
-				state.toScheduleInputs[boxType].push_back(minLevelOperationPtr);
+//				int boxType = (minLevelOperationPtr->type == AA ? ATYPE : YTYPE);
+				int boxType = (minLevelOperationPtr->type == 't' ? ATYPE : YTYPE);
+				state.toScheduleInputs[boxType].insert(minLevelOperationPtr);
+			}
+
+//			if(state.toScheduleInputs[0].size() == 0 && state.toScheduleInputs[1].size() == 0)
+			{
+				//if nothing was planned for scheduling, save the current index
+				state.septLastIndex = currentIndex;
+			}
+
+			/*
+			 * the index was advanced, but does it still fit the vector bounds?
+			 */
+			finishedStep = (state.septBfs.size() == currentIndex);
+			if(state.septBfs.size() == state.septLastIndex)
+			{
+				state.setCircuitFinished(true);
 			}
 		}
-
-		/*
-		 * From here everything is on a higher level than the
-		 * inputs to be scheduled. Skip this wire in further searches.
-		 */
-		if(state.getMaximumInputLevel() > NOLEVEL && minLevel >= state.getMaximumInputLevel())
-		{
-			state.removeFromLinesToCheck(minLevelPos);
-		}
 	}
+
+
+
+//	/*
+//	 * Determines if all graph elements until the lowest possible unscheduled
+//	 * input were collected in toDraw and toSchedule
+//	 */
+//	while(state.minLevelLinesToCheck.size() != 0)
+//	{
+//		//advance the minimum level
+//		//get minimum level of current ids
+//		long 	minLevel = LONG_MAX;
+//		wireelement* minLevelPos = state.getMinLevelFromLinesToCheck(minLevel);
+////		int 	minLevelOperationId = state.currentIdProWire[minLevelPos];
+//		recyclegate* minLevelOperationPtr = state.currentGateProWire[minLevelPos];
+//
+//		/*
+//		 * There is no minimum
+//		 * bye bye - finished the entire circuit
+//		 */
+//		if(minLevel == LONG_MAX)
+//		{
+//			state.setCircuitFinished(true);
+//			break;
+//		}
+//
+//		bool isInjection = (minLevelOperationPtr->type == AA || minLevelOperationPtr->type == YY);
+//		bool wasScheduled = (state.scheduledInputs.find(minLevelOperationPtr) != state.scheduledInputs.end());
+//
+//		/*
+//		 * If this is the first scheduled/unscheduled input, save its level
+//		 */
+//		if(isInjection && state.getMaximumInputLevel() == NOLEVEL)
+//		{
+//			state.saveMaxLevel(minLevelOperationPtr->level);
+//			printf("new inputLevel%ld\n", state.getMaximumInputLevel());
+//		}
+//
+//		if(state.getMinimumLevel() == NOLEVEL)
+//		{
+//			state.setMinimumLevel(minLevel);
+//		}
+//
+//		/*
+//		 * The conditions to add in toDraw or toSchedule
+//		 */
+//		if(state.getMaximumInputLevel() == NOLEVEL || minLevel <= state.getMaximumInputLevel())
+//		{
+//			if(!isInjection || wasScheduled)
+//			{
+//				//can be drawn
+//				state.toDraw.push_back(minLevelOperationPtr);
+//
+//				//advance on the wires having the operation with min level
+//				for(std::set<wireelement*>::iterator it = state.minLevelLinesToCheck.begin();
+//						it != state.minLevelLinesToCheck.end(); it++)
+//				{
+//					if(state.currentGateProWire[*it] == minLevelOperationPtr)
+//					{
+//						state.currentGateProWire[*it] = getSuccessorOnSameWire(state.currentGateProWire[*it], *it);
+//					}
+//				}
+//			}
+//			else
+//			{
+//				//cannot be drawn and needs scheduling
+//				int boxType = (minLevelOperationPtr->type == AA ? ATYPE : YTYPE);
+//				state.toScheduleInputs[boxType].push_back(minLevelOperationPtr);
+//			}
+//		}
+//
+//		/*
+//		 * From here everything is on a higher level than the
+//		 * inputs to be scheduled. Skip this wire in further searches.
+//		 */
+//		if(state.getMaximumInputLevel() > NOLEVEL && minLevel >= state.getMaximumInputLevel())
+//		{
+//			state.removeFromLinesToCheck(minLevelPos);
+//		}
+//	}
 
 	if(state.isCircuitFinished())
 	{
@@ -149,75 +242,118 @@ bool causalgraph::stepwiseBfs(bfsState& state)
 	return state.isCircuitFinished();
 }
 
-/*
+bool causalgraph::retCompareOnLevel (recyclegate* i, recyclegate* j)
+{
+	bool ret = (i->level < j->level);
+	if(i->level == j->level)
+	{
+		ret = (i->getId() < j->getId());
+	}
+	return ret;
+}
+
+/**
  * Very similar to stepwiseBfs. Too similar.
+ * @return A sorted list of the gates based on their level
  */
 std::vector<recyclegate*> causalgraph::bfs()
 {
-	std::vector<recyclegate*> ret;
+//	std::vector<recyclegate*> ret;
 
-	std::vector<recyclegate*> inputs = getRoots();
+	//copy
+	std::vector<recyclegate*> ret(tmpCircuit.begin(), tmpCircuit.end());
 
-	//this is a similar trick to lastSeen
-	std::map<wireelement*, recyclegate*> currentIdProWire;//(inputs.size(), NULL);
+	std::sort(ret.begin(), ret.end(), causalgraph::retCompareOnLevel);
 
-	for(size_t i=0; i<inputs.size(); i++)
-	{
-		//take the id of the input operations
-		currentIdProWire[inputs[i]->wirePointers[0]] = inputs[i];
-	}
+//	printf("ORDERED BFS: ");
+//	for(std::vector<recyclegate*>::iterator it = ret.begin(); it != ret.end(); it++)
+//	{
+//		printf("%ld ", (*it)->getId());
+//	}
+//	printf("\n");
 
-	while(true)
-	{
-		//advance the minimum level
-		//get minimum level of current ids
-		int min = INT_MAX;
+//
+//	std::vector<recyclegate*> inputs = getRoots();
+//
+//	//this is a similar trick to lastSeen
+//	std::map<wireelement*, recyclegate*> currentIdProWire;//(inputs.size(), NULL);
+//
+//	for(size_t i=0; i<inputs.size(); i++)
+//	{
+//		//take the id of the input operations
+//		currentIdProWire[inputs[i]->wirePointers[0]] = inputs[i];
+//	}
+//
+//	std::map<recyclegate*, int> visited;
+//
+//	while(true)
+//	{
+//		//advance the minimum level
+//		//get minimum level of current ids
+//		int min = INT_MAX;
+//
+//		wireelement* minpos = NULL;
+//		for(size_t i=0; i<inputs.size(); i++)
+//		{
+//			wireelement* wireEl = inputs[i]->wirePointers[0];
+//
+//			if(currentIdProWire.find(wireEl) != currentIdProWire.end()
+//					&& min > currentIdProWire[wireEl]->level)
+//			{
+//				min = currentIdProWire[wireEl]->level;
+//				minpos = wireEl;
+//			}
+//		}
+//
+//		//there is no minimum - why? bye bye
+//		if(min == INT_MAX)
+//		{
+//			break;
+//		}
+//
+//		printf("minlevel %d %d\n", min, minpos);
+//
+//		//take the operation having the min level from minpos
+//		recyclegate* oldid = currentIdProWire[minpos];
+//
+//		//put it in the return list
+//		ret.push_back(oldid);
+//
+//		//advance on the wires having the operation with min level
+//		for(size_t i=0; i<inputs.size(); i++)
+//		{
+//			wireelement* wireEl = inputs[i]->wirePointers[0];
+//			if(currentIdProWire.find(wireEl) != currentIdProWire.end() /*exists*/
+//					&& currentIdProWire[wireEl] == oldid)/*compare pointers*/
+//			{
+//				recyclegate* next = getSuccessorOnSameWire(currentIdProWire[wireEl], wireEl);
+//
+////				if(visited.find(next) != visited.end())
+////				{
+////					if(visited[next] == 2)
+////						printf("mai fost odata %d\n", next);
+////				}
+////
+////				visited[next]++;
+//
+//				if(next != NULL)
+//				{
+//					currentIdProWire[wireEl] = next;
+//				}
+//				else
+//				{
+//					currentIdProWire.erase(wireEl);
+//				}
+//
+//			}
+//		}
+//	}
+//
 
-		wireelement* minpos = NULL;
-		for(size_t i=0; i<inputs.size(); i++)
-		{
-			wireelement* wireEl = inputs[i]->wirePointers[0];
-
-			if(currentIdProWire.find(wireEl) != currentIdProWire.end()
-					&& min > currentIdProWire[wireEl]->level)
-			{
-				min = currentIdProWire[wireEl]->level;
-				minpos = wireEl;
-			}
-		}
-
-		//there is no minimum - why? bye bye
-		if(min == INT_MAX)
-		{
-			break;
-		}
-
-		//take the operation having the min level from minpos
-		recyclegate* oldid = currentIdProWire[minpos];
-
-		//put it in the return list
-		ret.push_back(oldid);
-
-		//advance on the wires having the operation with min level
-		for(size_t i=0; i<inputs.size(); i++)
-		{
-			wireelement* wireEl = inputs[i]->wirePointers[0];
-			if(currentIdProWire.find(wireEl) != currentIdProWire.end() /*exists*/
-					&& currentIdProWire[wireEl] == oldid)/*compare pointers*/
-			{
-				recyclegate* next = getSuccessorOnSameWire(currentIdProWire[wireEl], wireEl);
-				if(next != NULL)
-				{
-					currentIdProWire[wireEl] = next;
-				}
-				else
-				{
-					currentIdProWire.erase(wireEl);
-				}
-
-			}
-		}
-	}
+//	for(std::vector<recyclegate*>::iterator it = ret.begin(); it != ret.end(); it++)
+//	{
+//		printf("li %d \n", (*it)->level);
+//	}
 
 	return ret;
 }
@@ -440,45 +576,72 @@ std::vector<recyclegate*> causalgraph::insertMeasurementAndInitialisation2(std::
 	long originalNr = (*originalGate)->orderNrInGateList;
 	originalGate = tmpCircuit.erase(originalGate);
 
+	std::vector<int> wiresIndices;
 	/*
 	 * Process initialisations
 	 */
-	for(size_t i=0; i<ins.size(); i++)
+	for(size_t i = 0; i < ins.size(); i++)
 	{
 		if(ins[i] != '_')
 		{
+			wiresIndices.clear();
+			wiresIndices.push_back(i);
+//			std::list<recyclegate*>::iterator newIter =
+//				constructInputOutput2(true, ins[i],
+//						wires,
+//						wiresIndices,
+//						originalGate);
+
+			std::list<recyclegate*>::iterator newIter =
+					constructRecycleGate2(wires, wiresIndices, originalGate);
+			configureInputOutput2(true, ins[i],	newIter);
+
+			/*
 			recyclegate* nInitialisation = new recyclegate();
 			nInitialisation->updateTypeAndCost(true, ins[i], costModel);
 			nInitialisation->updateCausalType();
+
 			nInitialisation->wirePointers.push_back(wires[i]);//updated wire reference in new gate
-			nInitialisation->orderNrInGateList = originalNr;//is this ok?
 
 			memTmpCircuit.push_back(nInitialisation);
-
 			tmpCircuit.insert(originalGate, nInitialisation);
+			*/
 
-			ret.push_back(nInitialisation);
+			(*newIter)->orderNrInGateList = originalNr;//is this ok?
+			ret.push_back(*newIter);
 		}
 	}
 
 	/*
 	 * Process measurements: backwards
 	 */
-	for(size_t i=outs.size(); i > 0; i--)
+	for(size_t i = outs.size(); i > 0; i--)
 	{
 		if(outs[i-1] != '_')
 		{
+			wiresIndices.clear();
+			wiresIndices.push_back(i - 1);
+
+			std::list<recyclegate*>::iterator newIter =
+						constructRecycleGate2(wires, wiresIndices, originalGate);
+
+			configureInputOutput2(false, outs[i - 1], newIter);
+
+			/*
 			recyclegate* nMeasurement = new recyclegate();
 			nMeasurement->updateTypeAndCost(false, outs[i - 1], costModel);
 			nMeasurement->updateCausalType();
+
 			nMeasurement->wirePointers.push_back(wires[i - 1]);//updated wire reference in new gate
-			nMeasurement->orderNrInGateList = originalNr;//is this ok?
 
 			memTmpCircuit.push_back(nMeasurement);
-
 			originalGate = tmpCircuit.insert(originalGate, nMeasurement);
+			*/
 
-			ret.push_back(nMeasurement);
+			originalGate = newIter;
+
+			(*newIter)->orderNrInGateList = originalNr;//is this ok?
+			ret.push_back(*newIter);
 		}
 	}
 
@@ -532,6 +695,9 @@ std::vector<wireelement*> causalgraph::insertWires2(std::vector<wireelement*>& w
 
 	for(int i=0; i<nr; i++)
 	{
+		constructWire2(wires);
+
+		/*
 		wireelement* additionalWire = new wireelement();
 
 		//memory management
@@ -544,7 +710,11 @@ std::vector<wireelement*> causalgraph::insertWires2(std::vector<wireelement*>& w
 		current->linkForward(additionalWire);
 
 		current = additionalWire;
+		*/
 	}
+
+	//update current to be the last inserted wire
+	current = wires.back();
 
 	current->linkForward(lastWire);
 	wires.push_back(lastWire);
@@ -556,35 +726,55 @@ void causalgraph::insertGates2(std::vector<std::string>& gateList,
 		std::vector<wireelement*>& wires,
 		std::list<recyclegate*>::iterator& originalGate)
 {
-	for(size_t i=0; i<gateList.size(); i++)
+	for(size_t i = 0; i < gateList.size(); i++)
 	{
-		recyclegate* gate = new recyclegate(gateList[i], wires);
+		/*recyclegate* gate = new recyclegate(gateList[i], wires);
 		gate->updateCausalType();
+
 		tmpCircuit.insert(originalGate, gate);
+		memTmpCircuit.push_back(gate);*/
 
-		memTmpCircuit.push_back(gate);
+		std::list<recyclegate*>::iterator newIterator =
+				constructGate2(gateList[i], wires, originalGate);
 
-		gate->orderNrInGateList = (*originalGate)->orderNrInGateList;
+		(*newIterator)->orderNrInGateList = (*originalGate)->orderNrInGateList;
+	}
+}
+
+void causalgraph::setLevelIterative()
+{
+	long nrLevel = 0;
+	for(std::list<recyclegate*>::iterator it = tmpCircuit.begin(); it != tmpCircuit.end(); it++)
+	{
+		if((*it)->type != 'i' && (*it)->type != 'o' )
+			nrLevel += 2;
+
+		if((*it)->type == 't' && nrLevel < 6)
+		{
+			nrLevel = 6;
+		}
+
+		(*it)->level = nrLevel;
 	}
 }
 
 std::vector<recyclegate*> causalgraph::numberGateList2()
 {
 	std::vector<recyclegate*> ret;
-	int nrId = 0;
+	long nrId = 0;
 	for(std::list<recyclegate*>::iterator it = tmpCircuit.begin(); it != tmpCircuit.end(); it++)
 	{
 		(*it)->orderNrInGateList = nrId;
 		ret.push_back(*it);
-		nrId++;
 
+		nrId++;
 
 		if((*it)->type == EMPTY)
 		{
 			printf("THERE IS A GATE with type EMPTY!!!!!!\n");
 		}
 
-//		circuit.push_back(*it);
+
 	}
 
 	return ret;
@@ -593,8 +783,9 @@ std::vector<recyclegate*> causalgraph::numberGateList2()
 wireelement* causalgraph::getFirstWireElement()
 {
 	//get first wire
-	wireelement* first = (*tmpCircuit.begin())->wirePointers[0]->getUpdatedWire(
-			(*tmpCircuit.begin())->orderNrInGateList);
+	recyclegate* firstgate = *tmpCircuit.begin();
+	wireelement* first = firstgate->wirePointers[0]->getUpdatedWire(
+			firstgate->orderNrInGateList);
 	while (first->prev != NULL)
 	{
 		first = first->prev;
@@ -677,138 +868,202 @@ void causalgraph::printGateList2()
 }
 
 
+/**
+ * Creates a new wire and places it in the tmpWireIndices vector
+ * @param tmpWireIndices list to update with pointers to wires
+ * @return number of the wire
+ */
+int causalgraph::constructWire2(std::vector<wireelement*>& tmpWireIndices)
+{
+	/*construieste elementele de fir*/
+	wireelement* wireEl = new wireelement();
+	int nrWire = tmpWireIndices.size();
+
+	tmpWireIndices.push_back(wireEl);
+	if (nrWire > 0)
+	{
+		tmpWireIndices[nrWire - 1]->linkForward(tmpWireIndices[nrWire]);
+	}
+	memWireElements.push_back(wireEl);
+
+	return nrWire + 1;
+}
+
+/**
+ * Constructs a gate which operates on the wires indexed by indices. The wireelement
+ * pointers are taken based on the indices from tmpWires. The gate is placed at the
+ * position indicated by iterator where
+ * @param tmpWires
+ * @param indices
+ * @param where
+ * @return an iterator to the newly placed gate
+ */
+std::list<recyclegate*>::iterator causalgraph::constructRecycleGate2(std::vector<wireelement*>& tmpWires,
+		std::vector<int>& indices,
+		std::list<recyclegate*>::iterator where)
+{
+	recyclegate* recg = new recyclegate();
+
+	for(std::vector<int>::iterator it = indices.begin(); it != indices.end(); it++)
+	{
+		recg->wirePointers.push_back(tmpWires[*it]);
+	}
+
+	where = tmpCircuit.insert(where, recg);
+	memTmpCircuit.push_back(recg);
+
+	return where;
+}
+
+//TODO: this and constructGate2 are very similar
+std::list<recyclegate*>::iterator causalgraph::configureInputOutput2(bool isInput, char ctype,
+		std::list<recyclegate*>::iterator where)
+{
+	if(ctype != '*')
+		(*where)->updateType(isInput, ctype);
+
+	(*where)->updateCost(isInput, costModel);
+	(*where)->updateCausalType();
+
+	return where;
+}
+
+std::list<recyclegate*>::iterator causalgraph::constructGate2(std::string& line,
+		std::vector<wireelement*>& tmpWires,
+		std::list<recyclegate*>::iterator where)
+{
+	std::vector<int> indices;
+	char type;
+
+	recyclegate::fromString(line, type, indices);
+
+	where = constructRecycleGate2(tmpWires,
+			indices,
+			where);
+
+	(*where)->type = type;
+	(*where)->updateCausalType();
+
+	/**
+	 * 3 NOV
+	 */
+//	if(type == 't')
+//	{
+//		wireelement* frontw = memWireElements.front();
+//		if((*where)->wirePointers[0] != frontw)
+//		{
+//			(*where)->wirePointers.push_back(frontw);
+//		}
+//	}
+
+//	/**
+//	 * 3 NOV
+//	 */
+	if(type=='s')//there is no S gate
+		(*where)->gateCost = 0; //is this a cnot?
+	else
+		(*where)->gateCost = 1;
+
+	return where;
+}
+
 void causalgraph::constructFrom2(std::vector<std::string>& file)
 {
-	std::vector<wireelement*> tmpWireIndices;
-
-	int nrWire = 0;
+	std::vector<wireelement*> tmpWires;
 
 	std::istringstream inin(file[0]);
 	std::string s;
 	inin >> s;
 	inin >> s;
 
-	for(size_t i=0; i<s.size(); i++)
+	std::vector<int> wireIndices;
+
+	for(size_t i = 0; i < s.size(); i++)
 	{
-		recyclegate* input = new recyclegate();
-		input->updateTypeAndCost(true, s[i], costModel);
-		input->updateCausalType();
-
 		/*construieste elementele de fir*/
-		wireelement* wireEl = new wireelement();
-		tmpWireIndices.push_back(wireEl);
-		if(nrWire > 0)
-		{
-			//make the links
-//			tmpWireIndices[nrWire - 1]->next = tmpWireIndices[nrWire];
-//			tmpWireIndices[nrWire]->prev = tmpWireIndices[nrWire - 1];
-			tmpWireIndices[nrWire - 1]->linkForward(tmpWireIndices[nrWire]);
-		}
-		memWireElements.push_back(wireEl);
+		int nrWire = constructWire2(tmpWires);
+		wireIndices.clear();
+		wireIndices.push_back(nrWire - 1);
 
-//		input->wires.push_back(nrWire);
-		input->wirePointers.push_back(tmpWireIndices[nrWire]);
+		std::list<recyclegate*>::iterator newIter =
+				constructRecycleGate2(tmpWires, wireIndices, tmpCircuit.end());
 
-//		if(gatenumbers::getInstance().isAncillaInput(input->type))
-//		{
-//			inAncillae.insert(nrWire);
-//		}
-
-		tmpCircuit.push_back(input);
-		memTmpCircuit.push_back(input);
-
-		nrWire++;
+		configureInputOutput2(true, s[i], newIter);
+		//set a type 27.10.2017
+		(*newIter)->type = 'i'; //input
 	}
 
 	/*
 	 * Update First Wire
 	 */
-	firstWire = tmpWireIndices[0];
-
 	for(size_t i=2; i<file.size(); i++)
 	{
-		recyclegate* gate = new recyclegate(file[i], tmpWireIndices);
-		gate->updateCausalType();
-		gate->gateCost = 1;//is this a cnot?
-
-		tmpCircuit.push_back(gate);
-		memTmpCircuit.push_back(gate);
+		constructGate2(file[i], tmpWires, tmpCircuit.end());
 	}
 
-	nrWire = 0;
 	std::istringstream outout(file[1]);
 	outout >> s;
 	outout >> s;
-	for(size_t i=0; i<s.size(); i++)
+
+	for(size_t i = 0; i < s.size(); i++)
 	{
-		recyclegate* output = new recyclegate();
-		output->updateTypeAndCost(false, s[i], costModel);
-		/*the last nodes are outputs*/
-		output->updateCausalType();
+		int nrWire = i;
+		wireIndices.clear();
+		wireIndices.push_back(nrWire);
 
-//		output->wires.push_back(nrWire);
-		output->wirePointers.push_back(tmpWireIndices[nrWire]);
+		std::list<recyclegate*>::iterator newIter =
+				constructRecycleGate2(tmpWires, wireIndices, tmpCircuit.end());
 
-//		if(gatenumbers::getInstance().isAncillaOutput(output->type))
-//		{
-////			outAncillae.insert(cc.outputs.size() + cc.gates.size() + nrWire);
-//			outAncillae.insert(circuit.size());
-//		}
-
-		tmpCircuit.push_back(output);
-		memTmpCircuit.push_back(output);
-
-		nrWire++;
+		configureInputOutput2(false, s[i], newIter);
+		//set a type 27.10.2017
+		(*newIter)->type = 'o';//input
 	}
 }
 
-recyclegate* causalgraph::getSuccessorOnSameWire(recyclegate* current, wireelement* wire)
-{
-//	int lmin = INT_MAX;
-	recyclegate* ret = NULL;
+//recyclegate* causalgraph::getSuccessorOnSameWire(recyclegate* current, wireelement* wire)
+//{
+////	int lmin = INT_MAX;
+//	recyclegate* ret = NULL;
+////
+////	for(std::map<int, recyclegate*>::iterator it = current->willPush.begin();
+////			it != current->willPush.end(); it++)
+////	{
+////		recyclegate* operationId = it->second;
+////
+////		for(std::vector<wireelement*>::iterator wit = operationId->wiresToUseForLinks.begin();
+////				wit != operationId->wiresToUseForLinks.end(); wit++)
+////		{
+////			if(*wit == wire /*pointer compare*/ && lmin > operationId->level)
+////			{
+////				lmin = operationId->level;
+////				ret = operationId;
+////			}
+////		}
+////	}
 //
-//	for(std::map<int, recyclegate*>::iterator it = current->willPush.begin();
-//			it != current->willPush.end(); it++)
+//	//this is how it should maybe work. for the moment keep the map complication
+////	return circuit[currid]->willPush[wire];
+//	std::vector<wireelement*>::iterator it =
+//			std::find(current->wirePointers.begin(), current->wirePointers.end(), wire);
+//	if(it != current->wirePointers.end())
 //	{
-//		recyclegate* operationId = it->second;
-//
-//		for(std::vector<wireelement*>::iterator wit = operationId->wiresToUseForLinks.begin();
-//				wit != operationId->wiresToUseForLinks.end(); wit++)
-//		{
-//			if(*wit == wire /*pointer compare*/ && lmin > operationId->level)
-//			{
-//				lmin = operationId->level;
-//				ret = operationId;
-//			}
-//		}
+//		int pos = std::distance(current->wirePointers.begin(), it);
+//		ret = current->willPush[pos];
 //	}
-
-	//this is how it should maybe work. for the moment keep the map complication
-//	return circuit[currid]->willPush[wire];
-	std::vector<wireelement*>::iterator it =
-			std::find(current->wirePointers.begin(), current->wirePointers.end(), wire);
-	if(it != current->wirePointers.end())
-	{
-		int pos = std::distance(current->wirePointers.begin(), it);
-		ret = current->willPush[pos];
-	}
-
-	//NULL should happen only for outputs
-	return ret;
-}
+//
+//	//NULL should happen only for outputs
+//	return ret;
+//}
 
 long causalgraph::getAndSetMaxPrevLevel(recyclegate* current, bool useGateCost, int timeDistanceBetweenOperations)
 {
 	//take the maximum level from the neighbouring nodes that are "pushing"
 	long maxPrevLevel = LONG_MIN;
 
-//	for (set<int>::iterator it = circuit[currid]->pushedBy.begin();
-//			it != circuit[currid]->pushedBy.end(); it++)
-
-	for (std::map<int, recyclegate*>::iterator it = current->pushedBy.begin();
-				it != current->pushedBy.end(); it++)
+	for (std::vector<recyclegate*>::iterator it = current->pushedBy.begin();
+					it != current->pushedBy.end(); it++)
 	{
-		recyclegate* operationPtr = it->second;
+		recyclegate* operationPtr = *it;
 
 		int operationTimeCost = 0;
 		if(useGateCost == true)
@@ -819,7 +1074,7 @@ long causalgraph::getAndSetMaxPrevLevel(recyclegate* current, bool useGateCost, 
 		//daca vecinul are nivelul -1. fix pula
 		if(operationPtr->level == -1)
 		{
-			int maxLevelUntilNow = getAndSetMaxPrevLevel(operationPtr, useGateCost, timeDistanceBetweenOperations);
+			long maxLevelUntilNow = getAndSetMaxPrevLevel(operationPtr, useGateCost, timeDistanceBetweenOperations);
 
 			//un mini setter ...
 			long increaseLevelValue = operationTimeCost + timeDistanceBetweenOperations;
@@ -832,11 +1087,11 @@ long causalgraph::getAndSetMaxPrevLevel(recyclegate* current, bool useGateCost, 
 				long minTimeDifference = enforcedTimeDifference;
 
 				//Imi este foarte neclar ce face bucata asta. A ramas aici de candva?
-				for(std::map<int, recyclegate*>::iterator pit = operationPtr->pushedBy.begin();
+				for(std::vector<recyclegate*>::iterator pit = operationPtr->pushedBy.begin();
 						pit != operationPtr->pushedBy.end();
 						pit++)
 				{
-					recyclegate* pitPtr = pit->second;
+					recyclegate* pitPtr = *pit;
 					if(pitPtr->causalType == RECGATE)
 					{
 						long timeDif = operationPtr->level - pitPtr->level;
@@ -862,26 +1117,8 @@ long causalgraph::getAndSetMaxPrevLevel(recyclegate* current, bool useGateCost, 
 
 void causalgraph::connectNodes(int prevWire, int currWire, recyclegate* prevGate, recyclegate* currGate)
 {
-//	prevGate->addWillPush(prevWire, currGate);
-
-//	printf("connect %p %p\n", prevGate, currGate);
-
-	int pos = -1;
-	std::vector<wireelement*>::iterator foundIt;
-	foundIt = std::find(prevGate->wirePointers.begin(), prevGate->wirePointers.end(),
-			currGate->wirePointers[currWire]);
-
-	if(foundIt != prevGate->wirePointers.end())
-	{
-		pos = std::distance(prevGate->wirePointers.begin(), foundIt);
-	}
-	else
-	{
-		printf("connectnodes: not found!\n");
-	}
-	prevGate->addWillPush(pos, currGate);
-
-	currGate->addPushedBy(currWire, prevGate);
+	prevGate->addWillPush(currGate);
+	currGate->addPushedBy(prevGate);
 }
 
 void causalgraph::updateLabels()
@@ -900,12 +1137,12 @@ void causalgraph::equalizeLevels()
 	{
 		//vezi care este nivelul minim urmator
 		int min = INT_MAX;
-		for(std::map<int, recyclegate*>::iterator it2 = (*it)->willPush.begin();
+		for(std::vector<recyclegate*>::iterator it2 = (*it)->willPush.begin();
 				it2 != (*it)->willPush.end(); it2++)
 		{
-			if(min > it2->second->level)
+			if(min > (*it2)->level)
 			{
-				min = it2->second->level;
+				min = (*it2)->level;
 			}
 		}
 
@@ -917,127 +1154,6 @@ void causalgraph::equalizeLevels()
 		}
 	}
 }
-
-//void causalgraph::replaceQubitIndex(std::set<int>& visited, int curr, int oldvalue, int newvalue)
-//{
-//	if(visited.find(curr) != visited.end())
-//		return;
-//
-//	visited.insert(curr);
-//	std::vector<int>::iterator it;
-//	it = std::find (circuit[curr]->wires.begin(), circuit[curr]->wires.end(), oldvalue);
-//	if(it != circuit[curr]->wires.end())
-//	{
-//		*it = newvalue;
-//	}
-//
-//
-//	for(std::map<int, int>::iterator it=circuit[curr]->willPush.begin(); it!=circuit[curr]->willPush.end(); it++)
-//	{
-//		replaceQubitIndex(visited, it->second, oldvalue, newvalue);
-//	}
-//}
-
-//void causalgraph::findShortestPath(set<int>& visited, set<int>& outputs,
-//		vector<int> path, vector<int>& shortest,
-//		int stepback, int prev, int curr)
-//{
-//	if(visited.find(curr) != visited.end())
-//	{
-//		return;
-//	}
-//
-//	if(visited.empty())
-//	{
-//		set<int> vis2;
-//		//set<int> outputs;
-//		reachOutputs(vis2, outputs, curr);
-//		//pentru a evita cicluri cu outputuri
-//		visited.insert(outputs.begin(), outputs.end());
-//	}
-//
-//	visited.insert(curr);
-//
-//	//do not consider nodes where output and input were joined
-//	if(circuit[curr]->isConnection())
-//		//path.insert(curr);
-//		path.push_back(curr);
-//
-//	//check solution
-//	//mai bine ar fi pe linia cea mai apropiata
-//	//e inutila conditia cu stepback?
-//	//if(stepback>0 &&  gatenumbers::getInstance()->isAncillaOutput(circuit[curr].type) /*circuit[curr].type == -2*/ && outputs.find(curr) == outputs.end())//todo
-//	if(stepback>0 && circuit[curr]->isAncillaMeasurement() && outputs.find(curr) == outputs.end())//todo
-//	{
-//		/*METODA CU STEPBACK*/
-//		if (shortest.size() == 0 || (path.size() < shortest.size()-1 || stepback< -shortest.back() ))
-//		{
-//			shortest.clear();
-//			shortest.insert(shortest.begin(), path.begin(), path.end());
-//
-//			//shortest.push_back(-distzero);
-//
-//			/*METODA CU STEPBACK*/
-//			//last element is number of stepbacks - not an id
-//			shortest.push_back(-stepback);
-//			//shortest.insert(curr);
-//
-//			/*METODA CU DISTWIRE*/
-//			//shortest.push_back(-distwire);
-//
-//			//printf("# %d %d\n", path.size(), distwire);
-//		}
-//	}
-//
-//	//BACKWARD
-//	for(map<int, int>::iterator it=circuit[curr]->pushedBy.begin();
-//			it!=circuit[curr]->pushedBy.end(); it++)
-//	{
-//		if(it->second != prev)
-//		{
-//			//fa pas inapoi
-//			//findShortestPath(visited, shortest, true, curr, *it);
-//			int counts = 1;
-//			//if(circuit[*it].type == -3 || circuit[*it].type == -4)
-//			//if(gatenumbers::getInstance()->isConnectionElement(circuit[*it].type))
-//			if(circuit[it->second]->isConnection())
-//				counts = 0;
-//			findShortestPath(visited, outputs, path, shortest, stepback + counts, curr, it->second);
-//		}
-//	}
-//
-//	//FORWARD
-//	for(map<int, int>::iterator it=circuit[curr]->willPush.begin();
-//			it!=circuit[curr]->willPush.end(); it++)
-//	{
-//		//fa pas inapoi
-//		findShortestPath(visited, outputs, path, shortest, stepback, curr, it->second);
-//	}
-//}
-
-//int causalgraph::moveInputAfterOutput(vector<int> shortest, int inputId)
-//{
-//	int outputId = -1;
-//
-//	//o cautare iditoata - ar trebui sa fie ultimul element
-//	for (vector<int>::iterator it = shortest.begin(); it != shortest.end(); it++)
-//	{
-//		if (circuit[*it]->isAncillaMeasurement())
-//		{
-//			outputId = *it;
-//
-//			circuit[outputId]->causalType = RECMEASCONN;//temp value, todo
-//			circuit[inputId]->causalType = RECINITCONN;
-//
-//			connectNodes(circuit[outputId]->wires[0], circuit[inputId]->wires[0],
-//					outputId, inputId);
-//
-//			break;
-//		}
-//	}
-//
-//	return outputId;
-//}
 
 void causalgraph::computeLevels()
 {
@@ -1098,24 +1214,33 @@ void causalgraph::updateLevelsAtValue(bfsState& current, long oldCost, long newC
 	 * Trebuie sa actualizez costurile doar inputurilor care nu sunt
 	 * urmasi pe o anumita creanga a grafului
 	 */
-	for(int i=0; i<2; i++)
-	{
-		for(std::vector<recyclegate*>::iterator it = current.toScheduleInputs[i].begin(); it!=current.toScheduleInputs[i].end(); it++)
-		{
-			if((*it)->level == oldCost)
-			{
-				(*it)->updateGateCostToAchieveLevel(newCost);
-			}
-		}
-	}
-
-	for(std::vector<recyclegate*>::iterator it = current.toDraw.begin(); it!=current.toDraw.end(); it++)
+	for(std::list<recyclegate*>::iterator it = tmpCircuit.begin();
+					it != tmpCircuit.end(); it++)
 	{
 		if((*it)->level == oldCost)
 		{
 			(*it)->updateGateCostToAchieveLevel(newCost);
 		}
 	}
+//	for(int i=0; i<2; i++)
+//	{
+//		for(std::set<recyclegate*>::iterator it = current.toScheduleInputs[i].begin();
+//				it!=current.toScheduleInputs[i].end(); it++)
+//		{
+//			if((*it)->level == oldCost)
+//			{
+//				(*it)->updateGateCostToAchieveLevel(newCost);
+//			}
+//		}
+//	}
+//
+//	for(std::vector<recyclegate*>::iterator it = current.toDraw.begin(); it!=current.toDraw.end(); it++)
+//	{
+//		if((*it)->level == oldCost)
+//		{
+//			(*it)->updateGateCostToAchieveLevel(newCost);
+//		}
+//	}
 }
 
 std::vector<recyclegate*> causalgraph::equalizeConsideringCosts()
@@ -1133,6 +1258,21 @@ std::vector<recyclegate*> causalgraph::equalizeConsideringCosts()
 	order = bfs();
 
 	reconstructConsideringCosts(order);
+
+//	/**
+//	 * 3 NOV - daca urmatoarea poarta pe fire este cnot, atunci fa gatecost 0
+//	 * daca nu, atunci fa 1
+//	 */
+//	for(std::list<recyclegate*>::iterator it = tmpCircuit.begin();
+//					it != tmpCircuit.end(); it++)
+//	{
+//		bool nextIsCnot = true;
+//		for(std::vector<wireelement*>::iterator itw = (*it)->wiresToUseForLinks.begin();
+//				itw != (*it)->wiresToUseForLinks.end(); itw++)
+//		{
+//			(*it)->willPush[]
+//		}
+//	}
 
 	resetAllLevels();
 	computeLevels(true, 0);
@@ -1155,10 +1295,10 @@ void causalgraph::resetLevelsStartingFrom(recyclegate* current)
 {
 	if(current->level != -1)
 	{
-		for(std::map<int, recyclegate*>::iterator it = current->willPush.begin();
+		for(std::vector<recyclegate*>::iterator it = current->willPush.begin();
 				it !=current->willPush.end(); it++)
 		{
-			resetLevelsStartingFrom(it->second);
+			resetLevelsStartingFrom(*it);
 		}
 		current->level = -1;
 	}
@@ -1179,6 +1319,13 @@ void causalgraph::computeLevels(bool useGateCost, int operationDistance)
 			(*it)->level = max + operationDistance;
 		}
 	}
+
+//    //take the outputs
+//    for(std::list<recyclegate*>::iterator it = tmpCircuit.begin();
+//    		it != tmpCircuit.end(); it++)
+//    {
+//    	printf("%d %d lev\n", (*it)->level, (*it)->type);
+//    }
 }
 
 ///**
@@ -1235,6 +1382,9 @@ causalgraph::causalgraph(costmodel& model)
 
 causalgraph::~causalgraph()
 {
+	printf("Causal Graph Destrucctor\n");
+	tmpCircuit.clear();
+
 	for(std::list<recyclegate*>::iterator it = memTmpCircuit.begin();
 				it != memTmpCircuit.end(); it++)
 	{
@@ -1246,18 +1396,5 @@ causalgraph::~causalgraph()
 	{
 		delete *it;
 	}
-
-//	while(initiallyFirstWireOrder->prev != NULL)
-//	{
-//		initiallyFirstWireOrder = initiallyFirstWireOrder->prev;
-//	}
-//
-//	while(initiallyFirstWireOrder->next != NULL)
-//	{
-//		initiallyFirstWireOrder = initiallyFirstWireOrder->next;
-//
-//		delete initiallyFirstWireOrder->prev;
-//	}
-//	delete initiallyFirstWireOrder;
 }
 

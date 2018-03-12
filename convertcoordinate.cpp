@@ -6,10 +6,51 @@
 std::string convertcoordinate::toString(char separator)
 {
 	std::stringstream ss;
-	ss << values[0] << separator << values[1] << separator << values[2];
+	ss << values[0];
+	ss << separator;
+	ss << values[1];
+	ss << separator;
+	ss << values[2];
 
 	return ss.str();
 }
+
+convertcoordinate::convertcoordinate()
+{
+	values.resize(3, LONG_MIN);
+};
+
+convertcoordinate::convertcoordinate(const convertcoordinate& other)
+{
+	values.resize(3, LONG_MIN);
+	values[0] = other.values[0];
+	values[1] = other.values[1];
+	values[2] = other.values[2];
+};
+
+long& convertcoordinate::operator[](int i){return values[i];};
+long& convertcoordinate::at(int i){return values[i];};
+
+convertcoordinate& convertcoordinate::operator=(const convertcoordinate& other)
+{
+	values.resize(3, LONG_MIN);
+	values[0] = other.values[0];
+	values[1] = other.values[1];
+	values[2] = other.values[2];
+
+	return *this;
+};
+
+bool convertcoordinate::operator==(const convertcoordinate& other)
+{
+	bool equal = true;
+	equal = equal && (values[0] == other.values[0]);
+	equal = equal && (values[1] == other.values[1]);
+	equal = equal && (values[2] == other.values[2]);
+
+	return equal;
+};
+
 
 bool convertcoordinate::isPrimalCorner(int val)
 {
@@ -67,7 +108,7 @@ bool convertcoordinate::isColinear(convertcoordinate& other)
 
 void convertcoordinate::reset()
 {
-	values[0] = INT_MIN;
-	values[1] = INT_MIN;
-	values[2] = INT_MIN;
+	values[0] = LONG_MIN;
+	values[1] = LONG_MIN;
+	values[2] = LONG_MIN;
 }

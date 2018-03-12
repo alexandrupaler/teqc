@@ -14,21 +14,18 @@
 class causalgraph
 {
 public:
-	//make pointers
-	//the vector is constructed only after
-	//graph operations finished
-//	std::vector<recyclegate*> circuit;
-
 	//constructor and operations using list
 	std::list<recyclegate*> tmpCircuit;
 
+	//used to store all the pointers which were operated in tmpCircuit. in destructor
 	std::list<recyclegate*> memTmpCircuit;
+
+	//pointer to the first wire of a circuit. wires are linked.
+	//see getFirstWireElement()
+//	wireelement* firstWire;
+
+	//used to store all the pointers of the wires. in destructor.
 	std::list<wireelement*> memWireElements;
-
-	wireelement* firstWire;
-
-////	wireorder* initiallyFirstWireOrder;
-//	std::vector<wireorder*> memWireOrder;
 
 	std::vector<int> lastSeen;
 //	std::set<int> inAncillae;
@@ -39,7 +36,6 @@ public:
 	int getNrQubits();
 	long getMaxLevel();
 
-//	void constructFrom(std::list<recyclegate>& gates, std::list<char>& inputs, std::list<char>& outputs, costmodel& model);
 	void constructFrom2(std::vector<std::string>& circuit);
 
 	void connectNodes(int prevWire, int currWire, recyclegate* previd, recyclegate* currid);
@@ -90,13 +86,38 @@ public:
     size_t numberWires2();
 //    void orderWires2();
 
+    /*
+     * 3 NOV
+     */
+    void setLevelIterative();
+
     causalgraph(costmodel& model);
     ~causalgraph();
 
 	wireelement* getFirstWireElement();
 
-private:
+//private:
 	long getAndSetMaxPrevLevel(recyclegate* current, bool useGateCost, int operationDistance);
+
+	/**
+	 *
+	 * @param tmpWireIndices
+	 * @return index of new wire in tmpWires. Should be tmpWires.size() - 1;
+	 */
+	int constructWire2(std::vector<wireelement*>& tmpWireIndices);
+
+	std::list<recyclegate*>::iterator configureInputOutput2(bool isInput, char ctype,
+			std::list<recyclegate*>::iterator where);
+
+	std::list<recyclegate*>::iterator constructGate2(std::string& line,
+			std::vector<wireelement*>& tmpWires,
+			std::list<recyclegate*>::iterator where);
+
+	std::list<recyclegate*>::iterator constructRecycleGate2(std::vector<wireelement*>& tmpWires,
+			std::vector<int>& indices,
+			std::list<recyclegate*>::iterator where);
+
+	static bool retCompareOnLevel (recyclegate* i, recyclegate* j);
 };
 
 #endif

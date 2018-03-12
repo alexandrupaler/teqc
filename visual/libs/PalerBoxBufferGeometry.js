@@ -25,6 +25,12 @@ THREE.PalerBoxBufferGeometry = function ( widthSegments, heightSegments, depthSe
 
 	// buffers
 	this.vertices = new Float32Array( vertexCount * 3 );
+	
+	this.indicesCount = 0;
+	this.indices = new Uint32Array( vertexCount );
+	
+	//a map for the coordinates already used
+	this.existence = new Map();
 
 	// offset variables
 	this.vertexBufferOffset = 0;
@@ -60,22 +66,97 @@ THREE.PalerBoxBufferGeometry = function ( widthSegments, heightSegments, depthSe
   	{
 	  	vertices2[i] = this.vertices[i];
 	  }
-	  
 	  //clean ?
 	  this.vertices = [];
-	  	
+	  
+	  var indices2 = new Uint32Array( this.indicesCount);
+  	for(var i=0; i<this.indicesCount; i++)
+  	{
+	  	indices2[i] = this.indices[i];
+	  }
+	  //clean ?
+	  this.indices = [];
+	  
+	   	
 	  // build geometry
 	  this.addAttribute( 'position', new THREE.BufferAttribute( vertices2, 3 ) );
+	  this.setIndex( new THREE.BufferAttribute( indices2, 1 ) );
+	  
+	  //clean ?
+	  console.log("map" + this.existence.size);
+	  this.existence.clear();
 	}
 
 	THREE.PalerBoxBufferGeometry.prototype.addVertex = function(vector, vbo)
   {
-			this.vertices[ vbo + 0] = vector.x;
+  		/*
+  			check if the vertex already exists
+  		*/
+			/*var valx = null;
+			var valy = null;
+			var valz = null;
+			
+		  var existX = this.existence.has(vector.x);
+			var existY = false;
+			if(existX)
+			{
+				valx = this.existence.get(vector.x);
+				existY = valx.has(vector.y);
+			}
+			var existZ = false;
+			if(existY)
+			{
+				valy = valx.get(vector.y);
+				existZ = valy.has(vector.z);
+			}
+			
+			if(existX && existY && existZ)
+			{
+				var index = valy.get(vector.z);
+				this.indices[this.indicesCount] = index;
+        this.indicesCount++;
+			}
+			else
+			{
+				this.vertices[ vbo + 0 ] = vector.x;
+				this.vertices[ vbo + 1 ] = vector.y;
+				this.vertices[ vbo + 2 ] = vector.z;
+			
+				if(! existX)
+				{
+  				this.existence.set(vector.x, new Map());
+  				valx = this.existence.get(vector.x);
+  			}
+  			
+				if(! existY)
+				{
+					valx.set(vector.y, new Map());
+					valy = valx.get(vector.y);
+				}
+				
+				if(! existZ)
+				{
+					valy.set(vector.z, vbo / 3);
+				}
+				
+				var index = valy.get(vector.z);
+				this.indices[this.indicesCount] = index;
+        this.indicesCount++;
+				
+				vbo += 3;
+			}*/
+			
+  		
+			this.vertices[ vbo + 0 ] = vector.x;
 			this.vertices[ vbo + 1 ] = vector.y;
 			this.vertices[ vbo + 2 ] = vector.z;
 			
+			this.indices[this.indicesCount] = this.indicesCount;
+      this.indicesCount++;
+			
 			vbo += 3;
 			
+
 			return vbo;
   }
 
@@ -100,8 +181,6 @@ THREE.PalerBoxBufferGeometry = function ( widthSegments, heightSegments, depthSe
 
 		var vertexCounter = 0;
 		
-
-
 		for ( var iy = 0; iy < gridY1; iy ++ ) {
 
 			var y = iy * segmentHeight - heightHalf;

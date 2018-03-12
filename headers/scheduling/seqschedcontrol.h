@@ -25,7 +25,7 @@ public:
 
 	void cancelTrigger();
 
-protected:
+public:
 	long boxStartTimeCoordinate;
 
 	long timeWhenPoolEnds;

@@ -12,18 +12,20 @@ connectionsPool::connectionsPool()
 	nrAvailable[1] = 0;
 }
 
-std::set<size_t> connectionsPool::getAllUnavailable()
+std::set<size_t> connectionsPool::getReservedButNotAssigned()
 {
 	std::set<size_t> ret;
-
 	ret.insert(reservedButNotAssigned[0].begin(), reservedButNotAssigned[0].end());
 	ret.insert(reservedButNotAssigned[1].begin(), reservedButNotAssigned[1].end());
+
+	return ret;
+}
+
+std::set<size_t> connectionsPool::getAssigned()
+{
+	std::set<size_t> ret;
 	ret.insert(assigned[0].begin(), assigned[0].end());
 	ret.insert(assigned[1].begin(), assigned[1].end());
-
-
-//	/*tobeavailable are also not available*/
-//	ret.insert(toBeAvailable.begin(), toBeAvailable.end());
 
 	return ret;
 }
@@ -36,15 +38,16 @@ void connectionsPool::preReleaseConnection(int boxType, size_t connNr)
 
 void connectionsPool::releaseConnection(int boxType, size_t connNr)
 {
+	printf("3.11.2017: release conn %d\n", connNr);
+
 	if(toBeAvailable[boxType].find(connNr) == toBeAvailable[boxType].end())
 	{
 		printf("NOT IN TOBEAVAILABLE %d\n", connNr);
 	}
 	toBeAvailable[boxType].erase(connNr);
 
-
 	nrAvailable[boxType]++;
-	available.push_back(connNr);
+	available.insert(available.begin(), connNr);
 }
 
 bool connectionsPool::sufficientToConsume(int boxType)
@@ -107,7 +110,7 @@ size_t connectionsPool::reserveConnection(int boxType)
 
 size_t connectionsPool::reserveConnectionPreferred(int boxType, size_t approxConnectionNumber)
 {
-	size_t currentApprox = approxConnectionNumber;
+	long currentApprox = approxConnectionNumber;
 
 	std::vector<size_t>::iterator foundIterator = available.end();
 
@@ -128,22 +131,18 @@ size_t connectionsPool::reserveConnectionPreferred(int boxType, size_t approxCon
 		}
 
 		currentApprox = currentApprox + direction * step;
-		printf("..... %lu %d\n", currentApprox, step);
+		if(currentApprox >= 0)
+		{
+			foundIterator = std::find(available.begin(), available.end(), (size_t) currentApprox);
+			//printf("..... %lu %d\n", currentApprox, step);
+		}
 
 		step++;
-
-
-		foundIterator = std::find(available.begin(), available.end(), currentApprox);
-
 	}
 
 	available.erase(foundIterator);
-
 	nrAvailable[boxType]--;
-
 	reservedButNotAssigned[boxType].push_back(currentApprox);
-
-	printf("-------");
 
 	return currentApprox;
 }

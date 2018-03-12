@@ -11,133 +11,15 @@
 
 #include "gatenumbers.h"
 #include "circconvert.h"
-#include "recycling/trim.h"
+#include "utils/trim.h"
 
 #include "fileformats/infilereader.h"
 #include "fileformats/gmlfilewriter.h"
-
-//void circconvert::makeGates(std::vector<std::string> file)
-//{
-//	//citeste inputuri
-//	std::istringstream inin(file[0]);
-//	std::string s;
-//	inin >> s;
-////	inin >> inputs;
-//	inin >> s;
-//	for(size_t i=0; i<s.size(); i++)
-//	{
-//		inputs.push_back(s[i]);
-//	}
-//
-//	std::istringstream outout(file[1]);
-//	outout >> s;
-////	outout >> outputs;
-//	outout >> s;
-//	for(size_t i=0; i<s.size(); i++)
-//	{
-//		outputs.push_back(s[i]);
-//	}
-//
-//	std::vector<wireelement*> empty;
-//	for(size_t i=2; i<file.size(); i++)
-//	{
-//		std::string line2 = file[i];
-//
-//		recyclegate currGate(line2, empty);
-//
-//		gates.push_back(currGate);
-//	}
-//
-//}
-//
-//circconvert::circconvert(std::vector<std::string>& file)
-//{
-//	makeGates(file);
-//}
-//
-//circconvert::circconvert(char* fname)
-//{
-//	infilereader inread;
-//	std::vector<std::string> file = inread.readInFile(fname);
-//	makeGates(file);
-//}
 
 circconvert::circconvert()
 {
 
 }
-//
-//void circconvert::updateWiresStartingFromGate(std::list<recyclegate>::iterator after, int minWireNumber, int incrValue)
-//{
-//	//after++;
-//	for(std::list<recyclegate>::iterator it=gates.begin(); it!=after; it++)
-//	{
-//		for(size_t j=0; j<it->wires.size(); j++)
-//		{
-//			if(it->wires[j] > minWireNumber)
-//				it->wires[j] += incrValue;
-//		}
-//	}
-//	for(std::list<recyclegate>::iterator it=after; it!=gates.end(); it++)
-//	{
-//		for(size_t j=0; j<it->wires.size(); j++)
-//		{
-//			if(it->wires[j] >= minWireNumber)
-//				it->wires[j] += incrValue;
-//		}
-//	}
-//}
-//
-//void circconvert::replaceNonICM()
-//{
-//	for(std::list<recyclegate>::iterator it=gates.begin(); it != gates.end(); it++)
-//	{
-//		if(it->type == 'T')
-//		{
-//			std::vector<int> wires = it->wires;
-//			std::map<int, int> dict;
-//			dict[0] = wires[0];
-//			dict[1] = wires[1];
-//			dict[2] = wires[2];
-//
-////			WIRE WIRE WIRE CTRL WIRE WIRE WIRE CTRL WIRE CTRL WIRE WIRE CTRL TGATE
-////			WIRE CTRL WIRE WIRE WIRE CTRL WIRE WIRE TGATE TGT WIRE TGATE TGT PGATE
-////			HGATE TGT TGATE TGT TGATE TGT TGATE TGT TGATE WIRE HGATE WIRE WIRE WIRE
-//
-//			std::string g[] = {"h 2", "c 1 2", "t 2", "c 0 2", "t 2", "c 1 2", "t 2", "c 0 2", "t 1", "t 2", "c 0 1", "h 2", "t 1", "c 0 1", "t 0", "p 1"};
-//
-//			for(int i=0; i<16; i++)
-//			{
-//				recyclegate c(g[i], it->wirePointers);
-//				c.replaceWires(dict);
-//
-//				gates.insert(it, c);
-//			}
-//
-//			it = gates.erase(it);
-//			it--;
-//		}
-//		else if(it->type == 'h')
-//		{
-////			int nrgates = 3;
-//
-//			std::map<int, int> dict;
-//			dict[0] = it->wires[0];
-//
-//			std::string g[] = {"p 0", "v 0", "p 0"};
-//			for(int i=0; i<3; i++)
-//			{
-//				recyclegate gate(g[i], it->wirePointers);
-//				gate.replaceWires(dict);
-//				gates.insert(it, gate);
-//			}
-//
-//			//delete the old gate
-//			it = gates.erase(it);//advances the iterator
-//			it--;
-//		}
-//	}
-//}
 
 /**
  * The method does not add any wires
@@ -145,6 +27,13 @@ circconvert::circconvert()
  */
 void circconvert::replaceNonICM2(causalgraph& causal)
 {
+
+	/*
+	 * 02.01.2018
+	 * test: move the "r" gates to the left two positions
+	 */
+	bool firstR = true;
+
 	for(std::list<recyclegate*>::iterator it = causal.tmpCircuit.begin();
 			it != causal.tmpCircuit.end(); it++)
 	{
@@ -154,10 +43,6 @@ void circconvert::replaceNonICM2(causalgraph& causal)
 
 		if(type == 'T')
 		{
-//			WIRE WIRE WIRE CTRL WIRE WIRE WIRE CTRL WIRE CTRL WIRE WIRE CTRL TGATE
-//			WIRE CTRL WIRE WIRE WIRE CTRL WIRE WIRE TGATE TGT WIRE TGATE TGT PGATE
-//			HGATE TGT TGATE TGT TGATE TGT TGATE TGT TGATE WIRE HGATE WIRE WIRE WIRE
-
 			std::string g[] = {"h 2", "c 1 2", "t 2", "c 0 2", "t 2", "c 1 2", "t 2", "c 0 2", "t 1", "t 2", "c 0 1", "h 2", "t 1", "c 0 1", "t 0", "p 1"};
 			decomposition = std::vector<std::string> (g, g + 16);
 			replace = true;
@@ -166,17 +51,74 @@ void circconvert::replaceNonICM2(causalgraph& causal)
 		{
 			std::string g[] = {"p 0", "v 0", "p 0"};
 			decomposition = std::vector<std::string> (g, g + 3);
+			replace = false;
+		}
+		else if (type == 'K')
+		{
+			//compute logical AND from Gidney adder
+			/*
+			 * r is a t gate without S gate correction
+			 */
+//			std::string g[] = {"r 2", "c 0 2", "c 1 2", "c 2 1 0", "t 0", "t 1", "t 2", "c 2 1 0", "h 2", "p 2"};
+//			std::string g[] = {"r 2", "c 0 2", "c 1 2", "c 2 1 0", "t 0", "t 1", "c 2 1 0", "t 2", "h 2", "p 2"};
+//			std::string g[] = {"r 2", "c 1 2", "c 0 1 2", "t 1", "c 0 2", "t 2", "c 0 1 2", "t 2", "h 2", "p 2"};
+
+			//versiune 02.01.2018
+//			std::string g[] = {"r 2", "c 0 2", "t 2 ", "c 1 2", "c 0 2", "t 2", "c 0 2", "t 2", "h 2", "p 2"};
+			//versiunea 03.01.2018
+//			std::string g[] = {"r 2", "c 0 2", "t 2 ", "c 1 2", "t 2", "c 0 2", "t 2", "c 0 2", "h 2", "p 2"};
+//			std::string g[] = {"r 2", "c 0 2", "c 1 2", "c 2 1 0", "r 0", "r 1", "r 2", "c 2 1 0", "h 2", "p 2"};
+			std::string g[] = {"r 2", "c 0 2", "c 1 2", "c 2 1 0", "r 0", "r 1", "r 2", "s 2", "c 2 1 0", "v 2"};/*h is like a V gate*/
+
+
+			decomposition = std::vector<std::string> (g, g + 10);
+			replace = true;
+		}
+		else if(type == 'U')
+		{
+			//uncompute logical AND from Gidney adder
+			//the CZ is not conditional on any measurement. it is just added.
+			std::string g[] = {"h 1", "c 0 1", "h 1"};
+			decomposition = std::vector<std::string> (g, g + 3);
 			replace = true;
 		}
 
 		if(replace)
 		{
-			for(size_t i=0; i<decomposition.size(); i++)
+			for(size_t i = 0; i < decomposition.size(); i++)
 			{
-				recyclegate* gate = new recyclegate(decomposition[i], (*it)->wirePointers);
+				std::string command = decomposition[i];
+				if(decomposition[i][0] == 'r')
+				{
+					command[0] = 't';
+				}
+				//replaced above with this
+				causal.constructGate2(command, (*it)->wirePointers, it);
 
-				causal.tmpCircuit.insert(it, gate);
-				causal.memTmpCircuit.push_back(gate);
+
+//				02jan2018
+//				if(decomposition[i][0] == 'r')
+//				{
+//					if(!firstR)
+//					{
+//						std::list<recyclegate*>::iterator itfirst  = it;
+//						itfirst--;
+//						std::list<recyclegate*>::iterator itsecond  = itfirst;
+//						itsecond--;
+//						itsecond--;
+//						std::iter_swap(itfirst, itsecond);
+//					}
+//					firstR = false;
+//				}
+
+				/*add potential S gate correction for the T gate*/
+				if(decomposition[i][0] == 't')
+				{
+					std::string correction = decomposition[i];
+					correction[0] = 'p';
+					causal.constructGate2(correction, (*it)->wirePointers, it);
+				}
+
 			}
 
 			//delete the old gate
@@ -386,7 +328,7 @@ void circconvert::replaceICM2(causalgraph& causal)
 
 			/*
 			 * AFTER insertMeasurementAndInitialisation2 the iterator it
-			 * points to the first measurement. complicat de exeplicat?
+			 * points to the first measurement. complicat de explicat?
 			 */
 			causal.insertGates2(gateFormation, newWires, it);
 

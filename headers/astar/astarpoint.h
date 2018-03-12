@@ -3,6 +3,7 @@
 
 #include <list>
 #include <string>
+#include <set>
 
 #include "pins/pinconstants.h"
 #include "convertcoordinate.h"
@@ -23,9 +24,9 @@ public:
 	long getZ();
 
 	int getGScore(Point* p);
-	int getHScore(Point* p);
+	long getHScore(Point* p);
 	int getGScore();
-	int getHScore();
+	long getHScore();
 	int getFScore();
 	void computeScores(Point* end);
 	bool hasParent();
@@ -57,6 +58,7 @@ public:
 	 * If the Point belongs to the opened list in A*
 	 */
 	bool opened;
+	std::multiset<Point*>::iterator openedIt;
 
 	/*
 	 * The 3D coordinate of the Point

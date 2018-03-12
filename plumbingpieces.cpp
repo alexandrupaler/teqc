@@ -1,32 +1,46 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <algorithm>
 #include <set>
 
 #include "plumbingpieces.h"
 #include "fileformats/generaldefines.h"
+#include "utils/trim.h"
+
+/*
+.position = .P
+.defects = .D
+.defects.primal = .D.p
+.defects.dual = .D.d
+.corrs = .C
+*/
 
 std::string plumbingpiece::toString()
 {
-	char mask[12] = "x, x, x, x";
+//	char mask[5] = "xxxx";
 
 	std::string msg = position.toString(',');
-	msg = "{ \"position\":[" + msg + "],";
-	msg += "\"defects\":{";
+	msg = "{\"P\":[" + msg + "],";
+	msg += "\"D\":{";
 
-	mask[0] = (primal&8) == 8 ? '1' : '0';
-	mask[3] = (primal&4) == 4 ? '1' : '0';
-	mask[6] = (primal&2) == 2 ? '1' : '0';
-	mask[9] = (primal&1) == 1 ? '1' : '0';
-	msg += "\"primal\": [" + std::string(mask) + "], ";
+//	mask[0] = (primal&8) == 8 ? '1' : '0';
+//	mask[1] = (primal&4) == 4 ? '1' : '0';
+//	mask[2] = (primal&2) == 2 ? '1' : '0';
+//	mask[3] = (primal&1) == 1 ? '1' : '0';
+//	msg += "\"p\": \"" + std::string(mask) + "\", ";
+	msg += "\"p\":" + intToString(primal) + ",";
 
-	mask[0] = (dual&8) == 8 ? '1' : '0';
-	mask[3] = (dual&4) == 4 ? '1' : '0';
-	mask[6] = (dual&2) == 2 ? '1' : '0';
-	mask[9] = (dual&1) == 1 ? '1' : '0';
-	msg += "\"dual\": [" + std::string(mask) + "]";
+//	mask[0] = (dual&8) == 8 ? '1' : '0';
+//	mask[1] = (dual&4) == 4 ? '1' : '0';
+//	mask[2] = (dual&2) == 2 ? '1' : '0';
+//	mask[3] = (dual&1) == 1 ? '1' : '0';
+//	msg += "\"d\": \"" + std::string(mask) + "\"";
+	msg += "\"d\":" + intToString(dual) + "";
 
-	msg += "},";
-	msg += "\"corrs\": {} }";
+	msg += "}";
+	msg += "}";
+//	msg += "},";
+//	msg += "\"C\": {} }";
 
 //	"position": [0, 0, 0],
 //	"defects": {
@@ -51,31 +65,59 @@ void plumbingpiece::setMask(bool isPrimal, unsigned int mask)
 		dual |= mask;
 }
 
+bool plumbingpiecesgenerator::countKey(long x, long y, long z)
+{
+	if(plumbMap.count(x) > 0 && plumbMap[x].count(y) > 0 && plumbMap[x][y].count(z) > 0)
+	{
+		return true;
+	}
+	return false;
+}
+
 int plumbingpiecesgenerator::getPlumbingPieceIndex(convertcoordinate& coord)
 {
-	std::string key = coord.toString(',');
-	if(plumbMap.find(key) == plumbMap.end())
+//	std::string key = coord.toString(',');
+	//if(plumbMap.find(key) == plumbMap.end())
+	if(!countKey(coord[0], coord[1], coord[2]))
 	{
 		plumbingpiece piece;
 		piece.position = coord;
 		pieces.push_back(piece);
 
-		plumbMap[key] = pieces.size() - 1;
+//		plumbMap[key] = pieces.size() - 1;
+		plumbMap[coord[0]][coord[1]][coord[2]] = pieces.size() - 1;
 	}
 
-	return plumbMap[key];
+	return plumbMap[coord[0]][coord[1]][coord[2]];
+}
+
+void plumbingpiecesgenerator::removeWrongCorners()
+{
+	for (int i = pieces.size() - 1; i >= 0; i--)
+	{
+		if (potentialCornerCounts.find(i) != potentialCornerCounts.end())
+		{
+			bool isCorner = (potentialCornerCounts[i] > 1);
+			bool hasPrimalOrigin = pieces[i].primal == 8;
+			bool hasDualOrigin = pieces[i].dual == 8;
+			if ((hasPrimalOrigin || hasDualOrigin) && !isCorner)
+			{
+//				printf("%s\n", pieces[i].position.toString(',').c_str());
+				pieces[i] = pieces.back();
+				pieces.pop_back();
+			}
+		}
+	}
 }
 
 void plumbingpiecesgenerator::generateFromGeometry(geometry& geom)
 {
-	std::map<std::string, int> potentialCornerCounts;
-	std::map<std::string, plumbingpiece> potentialCorners;
-
 	//1+8=9,2+8=10,4+8=12
 	for(std::vector<std::pair<long, long> >::iterator it = geom.segs.begin();
 			it != geom.segs.end(); it++)
 	{
-		bool isIO = std::find(geom.io.begin(), geom.io.end(), it->first) != geom.io.end();
+		bool isIO = false;
+		isIO = isIO || std::find(geom.io.begin(), geom.io.end(), it->first) != geom.io.end();
 		isIO = isIO || std::find(geom.io.begin(), geom.io.end(), it->second) != geom.io.end();
 
 		if(isIO)
@@ -128,7 +170,7 @@ void plumbingpiecesgenerator::generateFromGeometry(geometry& geom)
 
 		//coordinate is taken from a Center
 		//and needs to be corner
-		for(int i=0; i<3; i++)
+		for(int i = 0; i < 3; i++)
 		{
 			int sign = -1;
 			startPrimalPieceCoordinate[i] += sign * abs(DELTA + startPrimalPieceCoordinate[i])%DELTA;
@@ -136,48 +178,33 @@ void plumbingpiecesgenerator::generateFromGeometry(geometry& geom)
 
 		//imparte la DELTA ca sa obtii plumbingpiece
 		for(int i=0; i<3; i++)
+		{
 			startPrimalPieceCoordinate[i] /= DELTA;
+		}
 
 		//indiferent ca e dual sau primal tre sa misc intai coordonata asta
 		convertcoordinate iterCoord(startPrimalPieceCoordinate);
 
-		for(int i=0; i<=abs(dt); i++)
+		for(int i=0; i <= abs(dt); i++)
 		{
 			int localValPiece = valPiece;
 
-			iterCoord.at(index) = startPrimalPieceCoordinate.at(index) - i*direction;
+			iterCoord.at(index) = startPrimalPieceCoordinate.at(index) - i * direction;
+			int ppIdx = getPlumbingPieceIndex( iterCoord );
 
-			if(i==abs(dt))
+			if(i == abs(dt))
 			{
 				//always add last origin
 				localValPiece = 8;
-				std::string key = iterCoord.toString(',');
-
-				if(potentialCornerCounts.find(key) == potentialCornerCounts.end())
-				{
-					plumbingpiece xxx;
-					xxx.position = iterCoord;
-					potentialCornerCounts[key] = 0;
-					potentialCorners[key] = xxx;
-				}
-				potentialCornerCounts[key]++;
-
-				potentialCorners[key].setMask(primal, localValPiece);
 			}
-			else
+
+			if(potentialCornerCounts.find(ppIdx) == potentialCornerCounts.end())
 			{
-				int ppIdx = getPlumbingPieceIndex(iterCoord);
-				pieces[ppIdx].setMask(primal, localValPiece);
+				potentialCornerCounts[ppIdx] = 0;
 			}
-		}
+			potentialCornerCounts[ppIdx]++;
 
-		//consider only the pieces where an origin was used at least twice >=2
-		for(std::map<std::string, int>::iterator it = potentialCornerCounts.begin(); it!=potentialCornerCounts.end(); it++)
-		{
-			if(it->second >= 2)
-			{
-				pieces.push_back(potentialCorners[it->first]);
-			}
+			pieces[ppIdx].setMask(primal, localValPiece);
 		}
 	}
 }

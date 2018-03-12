@@ -29,6 +29,7 @@ wireelement::wireelement()
 {
 	ngh[0] = NULL;
 	ngh[1] = NULL;
+
 	prev = NULL;
 	next = NULL;
 

@@ -28,17 +28,20 @@ public:
 class plumbingpiecesgenerator
 {
 public:
-	/**
-	 * The map uses a serialised version of the segments as key for
-	 * retrieving their index from the segments collection.
-	 */
-	std::map<std::string, long> plumbMap;
+//	std::map<std::string, long> plumbMap;
+	std::map<long, std::map<long, std::map<long, long> > > plumbMap;
 
 	std::vector<plumbingpiece> pieces;
+
+	std::map<int, int> potentialCornerCounts;
+
+	void removeWrongCorners();
 
 	void generateFromGeometry(geometry& geom);
 
 	int getPlumbingPieceIndex(convertcoordinate& coord);
+
+	bool countKey(long x, long y, long z);
 };
 
 

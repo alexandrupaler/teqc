@@ -8,7 +8,7 @@
 #include <sstream>
 #include <string>
 
-std::string toString (int a);
+std::string intToString (int a);
 
 // trim from start
 std::string &ltrim(std::string &s);

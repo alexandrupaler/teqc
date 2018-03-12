@@ -18,7 +18,7 @@
 #include "gatenumbers.h"
 #include "circuitmatrix.h"
 
-#include "trim.h"
+#include "utils/trim.h"
 #include "recyclegate.h"
 
 #include "cuccaro.h"

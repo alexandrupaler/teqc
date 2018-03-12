@@ -4,7 +4,7 @@ INCLUDES = headers
 CXXFLAGS =$(CFLAGS) 
 
 CC = g++
-CFLAGS = -Wall -I$(INCLUDES) -lm -g
+CFLAGS = -Wall -I$(INCLUDES) -lm -g #-O3
 
 export CPATH=$CPATH:$(INCLUDES)
 
@@ -25,8 +25,9 @@ FILES = $(FILESDB) circuitmatrix.cpp numberandcoordinate.cpp geometry.cpp circui
 	$(wildcard astar/*.cpp) \
 	$(wildcard pins/*.cpp) \
 	$(wildcard recycling/*.cpp) \
+	$(wildcard utils/*.cpp) \
 	oldconvertft.cpp \
-	gatenumbers.cpp cnotcounter.cpp cuccaro.cpp \
+	gatenumbers.cpp cnotcounter.cpp cuccaro.cpp gidney.cpp\
 	circconvert.cpp\
 	computeadditional.cpp plumbingpieces.cpp\
 	boxworld2.cpp faildistillations.cpp \
@@ -123,6 +124,14 @@ connectpins:: $(OFILESCONN) $(BINDIR)
 #	rm -f $(OUTPUTDB) $(FILESDB)
 #	rm -f $(OUTPUTF) $(FILESF)
 #	rm -f $(OUTPUTCONN) $(FILESCONN)
+
+CPFILES = headers/gatenumbers.h seeds.txt \
+		database template.ps templatec.ps \
+		templateh.ps adist.raw.in.geom \
+		circuit.raw.in
+		
+cpbin::
+	cp $(CPFILES) $(BINDIR)
 
 ps::
 	cat templateh.ps test.ps templatec.ps > circ.ps

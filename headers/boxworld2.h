@@ -21,6 +21,7 @@
 #define PINSVERTICAL 0
 #define PINSHORIZRIGHT 1
 #define PINSHORIZLEFT 2
+#define PINSVERTICALLEFT 3
 
 //#define LOGPLACING
 
@@ -37,19 +38,7 @@ struct boxConfiguration
     std:: vector<std::vector<int> > boxSize;
     std::vector<int> distBetweenBoxes;
 
-    boxConfiguration()
-    {
-    	_pinScenario = PINSVERTICAL;
-    	_heightStepSize = 0;
-
-    	boxSize.resize(2);
-    	int bsizetmp[] = {60, 60, 60, 30, 30, 30};
-		boxSize[0] = std::vector<int>(bsizetmp + 0, bsizetmp + 3);
-		boxSize[1] = std::vector<int>(bsizetmp + 3, bsizetmp + 6);
-
-		int distatmp[] = { DELTA, DELTA, DELTA };
-		distBetweenBoxes = std::vector<int>(distatmp + 0, distatmp + 4);
-    }
+    boxConfiguration();
 
     int getBoxTotalDimension(int boxType, int axis);
 };
@@ -139,72 +128,62 @@ public:
     boxworld2();
 
     void pinsVertical(int nr, int bindex, long  & x, long  & y, long  & z);
+    void pinsVerticalLeft(int nr, int bindex, long  & x, long  & y, long  & z);
     void pinsHorizontalRight(int nr, int bindex, long  & x, long  & y, long  & z);
     void pinsHorizontalLeft(int nr, int bindex, long  & x, long  & y, long  & z);
 
     void saveBoxAndPinCoords(int nr, int bindex);
 
     BoundingBox generateBounds(int x, int y, int z, int boxTypeIndex);
-//    BoundingBox generateBounds(convertcoordinate coord, int boxTypeIndex);
-    BoundingBox initNewBox(schedulerLevelInfo& level, int boxType);
-
-    twobbox computeBBox();
-
-    bool canSlide(BoundingBox bBox, int axis, int direction);
-    bool overlapsConnectionChannel(BoundingBox bBox, int axis, int direction);
-
-    bool overlappedAndWasSlided(BoundingBox& bBox, int axis, int direction);
-    void addBoxSlidingHeight(BoundingBox& bBox, int boxTypeIndex);
-    void addBoxSlidingDepth(BoundingBox& bBox, int boxTypeIndex);
-    void addBoxSlidingDepth2(BoundingBox& bBox, int boxTypeIndex);
-
-    void placeAdditionalsAlongWidthAxis(int total, int boxType, int direction, int offset[3]);
-    void computeAdditionalATypeScheduler(long boxStartTimeCoordinate, int difStates);
-    void computeAdditionalYTypeScheduler(long boxStartTimeCoordinate, int difStates);
-
-    void switchLayoutConfig(int configNumber);
-
-    std::queue<int> computeScheduleCanonical(long boxStartTimeCoordinate, causalgraph& causal);
-    std::queue<int> computeScheduleALAPT(long boxStartTimeCoordinate, int boxType, int available, int necessary);
-
-	int preSimulateFailuresInGreedy(std::queue<int>& boxPinIds, int totalToSim, int boxType, schedulerLevelInfo& greedyLevel);
-
-	void initGeomBoundingBox(long wf, long ws, long df, long ds, long hf, long hs);
-	void initScheduleGreedy(double aStateFail, double yStateFail, double tGateFail, double pGateFail);
-	std::queue<int> greedyScheduleBoxes(long boxStartTimeCoordinate, int boxType, int available, int necessary);
-
+	BoundingBox initNewBox(schedulerLevelInfo& level, int boxType);
+	twobbox computeBBox();
+	bool canSlide(BoundingBox bBox, int axis, int direction);
+	bool overlapsConnectionChannel(BoundingBox bBox, int axis, int direction);
+	bool overlappedAndWasSlided(BoundingBox& bBox, int axis, int direction);
+	void addBoxSlidingHeight(BoundingBox& bBox, int boxTypeIndex);
+	void addBoxSlidingDepth(BoundingBox& bBox, int boxTypeIndex);
+	void addBoxSlidingDepth2(BoundingBox& bBox, int boxTypeIndex);
+	void placeAdditionalsAlongWidthAxis(int total, int boxType, int direction,
+			int offset[3]);
+	void computeAdditionalATypeScheduler(long boxStartTimeCoordinate,
+			int difStates);
+	void computeAdditionalYTypeScheduler(long boxStartTimeCoordinate,
+			int difStates);
+	void switchLayoutConfig(int configNumber);
+	std::queue<int> computeScheduleCanonical(long boxStartTimeCoordinate,
+			causalgraph& causal);
+	std::queue<int> computeScheduleALAPT(long boxStartTimeCoordinate,
+			int boxType, int available, int necessary);
+	int preSimulateFailuresInGreedy(std::queue<int>& boxPinIds, int totalToSim,
+			int boxType, schedulerLevelInfo& greedyLevel);
+	void initGeomBoundingBox(long wf, long ws, long df, long ds, long hf,
+			long hs);
+	void initScheduleGreedy(double aStateFail, double yStateFail,
+			double tGateFail, double pGateFail);
+	std::queue<int> greedyScheduleBoxes(long boxStartTimeCoordinate,
+			int boxType, int available, int necessary);
 	bool setConnectionBoxWidth(int totalWidth);
 	bool setConnectionBoxHeight(int totalHeight);
-
 	long getTimeWhenBoxesEnd();
 
 public:
 	faildistillations fd;
-
-    convertcoordinate currBoxCoords;
-
-    std::vector<boxcoord> boxCoords;
-    std::vector<pinpair> boxPins;
-
-    //this is not used in the greedy scheduler
-    numberandcoordinate nandc;
-
-    boxConfiguration currentConfig;
-
-    RTree rtree;
-    BoundingBox geomBoundingBox;
-    BoundingBox connectionsBox;
-
-    //objects used by greedy scheduling
+	convertcoordinate currBoxCoords;
+	std::vector<boxcoord> boxCoords;
+	std::vector<pinpair> boxPins;
+	numberandcoordinate nandc;
+	boxConfiguration currentConfig;
+	RTree rtree;
+	BoundingBox geomBoundingBox;
+	BoundingBox connectionsBox;
 	schedulerLevelInfo greedyLevel;
-
 	heuristicparameters* heuristicParam;
-
 	void setCalibration(bool value);
+	void scheduleSingleBox(long boxStartTimeCoordinate, int boxType);
 
 private:
-    void init();
-	void placeBoxesInGreedy(long boxStartTimeCoordinate /*bfsState& state*/, int& boxType, int nrBoxesToAdd);
+	void init();
+	void placeBoxesInGreedy(long boxStartTimeCoordinate, int& boxType, int nrBoxesToAdd);
 };
 
 #endif /* BOXWORLD_H_ */

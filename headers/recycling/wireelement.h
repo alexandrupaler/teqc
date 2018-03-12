@@ -24,9 +24,14 @@ public:
 	wireelement* cutForward();
 	wireelement* cutBackward();
 
-	size_t number;
+//	size_t number;
+	long number;
+
+//	wireorder* start;
+//	wireorder* stop;
 
 	std::bitset<100000> bits;
+//	std::vector<bool> bits;
 };
 
 

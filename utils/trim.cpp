@@ -1,9 +1,9 @@
-#include "recycling/trim.h"
+#include "utils/trim.h"
 
-std::string toString (int a)
+std::string intToString (int a)
 {
     std::ostringstream temp;
-    temp<<a;
+    temp << a;
     return temp.str();
 }
 

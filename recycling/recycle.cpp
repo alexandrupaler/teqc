@@ -17,7 +17,7 @@
 #include "cnotcounter.h"
 #include "circuitmatrix.h"
 
-#include "recycling/trim.h"
+#include "utils/trim.h"
 #include "cuccaro.h"
 #include "circconvert.h"
 
@@ -42,8 +42,13 @@ void wirerecycle::initialiseSimQueue(causalgraph& causal)
 				wireelement* wire1 = (*it)->wirePointers[i];
 				wireelement* wire2 = (*it)->wirePointers[j];
 
-				wire1->bits = wire1->bits | wire2->bits;
-				wire2->bits = wire1->bits;
+				wire1->bits |= wire2->bits;
+
+				//this is actually wire2->bits = wire1->bits
+				//because w1' = w1 OR w2, and w2 = w1 OR w2 = (w1 OR w2) OR w2 = w1 OR w2 = w1'
+				//however, I am doing this way because valgrind complained
+				//Source and destination overlap in memcpy(
+				wire2->bits |= wire1->bits;
 			}
 		}
 
@@ -382,7 +387,7 @@ recyclegate* wirerecycle::chooseClosestAncillaOutputWire(recyclegate* inputId, b
 int wirerecycle::recycleUsingWireSequence(causalgraph& causal)
 {
 	initialiseSimQueue(causal);
-	printf("initialsed sim\n");
+	printf("initialised sim\n");
 
 //	std::vector<std::vector<int> > sortedin = sortInputsForICM(causal);
 
@@ -451,44 +456,6 @@ int wirerecycle::recycleUsingWireSequence(causalgraph& causal)
 	return nrConnect;
 }
 
-//bool mycompare (std::vector<int> vi, std::vector<int>vj) { return vi[1] < vj[1]; }
-//
-//std::vector<std::vector<int> > wirerecycle::extractSortedInputsList(causalgraph& causal)
-//{
-//	std::vector < std::vector<int> > remainingIns;
-//	for (int i = 0; i < causal.circuit.size(); i++)
-//	{
-//		//if (causal.circuit[i].type == -1 || causal.circuit[i].type == INPUT)
-//		//if(gatenumbers::getInstance()->isInitialisationNumberButNotConnection(causal.circuit[i].type))
-//		if(causal.circuit[i]->isFirstLevelInitialisation())
-//		{
-//			std::vector<int> el(2);
-//			el[0] = i;//id
-//			el[1] = causal.circuit[i]->wires[0];//wire
-//			remainingIns.push_back(el);
-//		}
-//	}
-//
-//	std::sort (remainingIns.begin(), remainingIns.end(), mycompare);
-//
-//	return remainingIns;
-//}
-
-//void wirerecycle::renameWires(causalgraph& causal, std::vector<std::vector<int> >& remainingIns)
-//{
-//	//receives a sorted list, so renaming should not be problematic
-//	//rename wires
-//	int newNumber = -1;
-//	for(std::vector<std::vector<int> >::iterator k = remainingIns.begin(); k!=remainingIns.end(); k++)
-//	{
-//		std::set<int> v;//empty set of visited nodes
-//		newNumber++;
-//		causal.replaceQubitIndex(v, k->at(0), k->at(1)/*old value*/, newNumber/*new value*/);
-//		//printf("repl %d %d\n", k->at(1), newNumber);
-//	}
-//}
-
-//void wirerecycle::recycle(circconvert& convert, int recycleMethod, costmodel& model)
 void wirerecycle::recycle(causalgraph& causal, int recycleMethod)
 {
 //	causal.constructFrom(convert, model);

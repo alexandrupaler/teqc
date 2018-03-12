@@ -66,53 +66,31 @@ void bfsState::saveMaxLevel(long newLevel)
 
 size_t bfsState::getNrLines()
 {
-	return currentGateProWire.size();
+//	return currentGateProWire.size();
+
+	return septNrLines;
 }
 
 void bfsState::init(std::vector<recyclegate*>& inputs)
 {
 	resetLevels();
 
-	if(currentGateProWire.size() == 0)
-	{
-		for(size_t i=0; i<inputs.size(); i++)
-		{
-			currentGateProWire[inputs[i]->wirePointers[0]] = inputs[i];
-		}
-	}
+//	if(currentGateProWire.size() == 0)
+//	{
+//		for(size_t i=0; i<inputs.size(); i++)
+//		{
+//			currentGateProWire[inputs[i]->wirePointers[0]] = inputs[i];
+//		}
+//	}
 }
 
-void bfsState::initLinesToCheck()
+void bfsState::septInit(std::vector<recyclegate*>& bfs, size_t nrLines)
 {
-	minLevelLinesToCheck.clear();
-	for(std::map<wireelement*, recyclegate*>::iterator it = currentGateProWire.begin();
-			it != currentGateProWire.end(); it++)
-	{
-		minLevelLinesToCheck.insert(it->first);
-	}
-}
+	resetLevels();
 
-void bfsState::removeFromLinesToCheck(wireelement* line)
-{
-	minLevelLinesToCheck.erase(line);
-}
-
-wireelement* bfsState::getMinLevelFromLinesToCheck(long& minLevel)
-{
-	minLevel = LONG_MAX;
-	wireelement* minLevelPos = NULL;
-	for(std::set<wireelement*>::iterator it = minLevelLinesToCheck.begin();
-			it != minLevelLinesToCheck.end(); it++)
-	{
-		if(currentGateProWire[*it] != NULL
-				 && minLevel > currentGateProWire[*it]->level)
-		{
-			minLevel = currentGateProWire[*it]->level;
-			minLevelPos = *it;
-		}
-	}
-
-	return minLevelPos;
+	septBfs = bfs;
+	septLastIndex = 0;
+	septNrLines = nrLines;
 }
 
 void bfsState::resetToDrawAndToSchedule()
@@ -127,4 +105,13 @@ void bfsState::resetToDrawAndToSchedule()
 		toScheduleInputs[i].clear();
 	}
 	toDraw.clear();
+
+	septNrAssignedInputs = 0;
+}
+
+bfsState::~bfsState()
+{
+	resetToDrawAndToSchedule();
+	septBfs.clear();
+	scheduledInputs.clear();
 }

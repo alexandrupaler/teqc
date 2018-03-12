@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 
 enum PathfinderCode {PathFinderOK,
 	PathFinderStartErr,
@@ -16,6 +17,15 @@ enum PathfinderCode {PathFinderOK,
 class Pathfinder
 {
 public:
+
+	struct pointComp
+	{
+		bool operator() (Point* lhs, Point* rhs)
+		{
+			return lhs->getFScore() < rhs->getFScore();
+		}
+	};
+
 	Pathfinder();
 
 	~Pathfinder();
@@ -24,9 +34,11 @@ public:
 
 	void cleanList(std::list<Point*>& clist);
 
+	void cleanList(std::multiset<Point*, pointComp>& clist);
+
 	void useBoxWorld(boxworld2* world);
 
-	PathfinderCode aStar(Point* start, Point* end, int axes[], unsigned int steps, std::vector<Point*>& path);
+	PathfinderCode aStar(Point* start, Point* end, int axes[], unsigned int steps, std::vector<Point*>& path, int timeDirection);
 
 	Point* getOrCreatePoint(long x, long y, long z, bool checkAwayFromBox);
 
@@ -45,7 +57,7 @@ public:
 
     // Define the open and the close list
     // The set of currently discovered nodes still to be evaluated.
-	std::list<Point*> openList;
+	std::multiset<Point*, pointComp> openList;
 
     //The set of nodes already evaluated
 	std::list<Point*> closedList;
@@ -53,5 +65,6 @@ public:
     //maps for memorising visited points
     std::map<long, std::map<long, std::map<long, Point*> > > visited;
 
+    bool allowConnectionThroughChannel;
 };
 #endif /* ASTARALG_H_ */

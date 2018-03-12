@@ -29,23 +29,18 @@
 class recyclegate
 {
 public:
-//	map<WIRE ID REFERRING TO THIS GATE, OP ID OF OTHER GATE>
-//	std::map<int, int> willPush;
-//	std::map<int, int> pushedBy;
-
-	std::map<int, recyclegate*> willPush;
-	std::map<int, recyclegate*> pushedBy;
+	std::vector<recyclegate*> willPush;
+	std::vector<recyclegate*> pushedBy;
 
 	long orderNrInGateList;
 	int causalType;
 	long level;
+	long connChannel;
 
 	std::vector<wireelement*> wiresToUseForLinks;
 
 	//22.03.2017
 	std::vector<wireelement*> wirePointers;
-//	std::vector<int> wires;
-//	std::vector<int> afterSplit;
 	bool isVisited;
 
 	/*from circgate.h*/
@@ -54,19 +49,27 @@ public:
 	int gateCost;
 	int additionalWireCost;
 
-//	void replaceWires(std::map<int, int>& dict);
-	void updateTypeAndCost(bool isInitialisation, char ctype, costmodel& model);
+	void updateType(bool isInitialisation, char ctype);
+	void updateCost(bool isInitialisation, costmodel& model);
+
 	/*end*/
 
 	recyclegate();
+	~recyclegate();
 //	void initFrom(recyclegate& g);
 	recyclegate(std::string& s, std::vector<wireelement*>& wirePointersVector);
 
+	/*
+	 * The methods are historic. Used for debugging gml output
+	 */
 	std::string generateLabel();
 	void print();
 
-	void addWillPush(int wire, recyclegate* gatePtr);
-    void addPushedBy(int wire, recyclegate* gatePtr);
+	std::string toString();
+	static void fromString(std::string& line, char& type, std::vector<int>& indices);
+
+	void addWillPush(recyclegate* gatePtr);
+    void addPushedBy(recyclegate* gatePtr);
 
 //	void getMinMax(int& min, int& max);
 

@@ -4,6 +4,9 @@
 #define DUALUPCOORD 1
 #define DUALDOWNCOORD -1
 
+#define DONOTADDEXISTINGSEGMENT 0
+#define REMOVEEXISTINGSEGMENT 1
+
 #include <vector>
 #include <map>
 #include <string>
@@ -50,6 +53,7 @@ public:
 	 * @return if segment was added
 	 */
 	bool addSegment(int idx1, int idx2);
+	bool addSegment(int idx1, int idx2, int operationTypeForExistingSegment);
 
 	/**
 	 * Adds the coordinate of a vertex, and returns its index from the
@@ -79,6 +83,10 @@ public:
 	 */
 	void reset();
 
+	/**
+	 * Add this geometry to the existing one, using an offset
+	 */
+	void appendGeometry(geometry& other, convertcoordinate& offset);
 
 public:
 	/**

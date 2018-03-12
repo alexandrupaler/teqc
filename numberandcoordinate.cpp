@@ -44,6 +44,8 @@ pinpair::pinpair()
 {
 	id = FAKEID;
 	type = ATYPE;
+	hasSourceAndDestinationReversed = false;
+	allowConnectionThroughChannel = false;
 };
 
 pinpair::pinpair(const pinpair& other)
@@ -52,14 +54,18 @@ pinpair::pinpair(const pinpair& other)
 	pins[1]= other.pins[1];
 	id = other.id;
 	type = other.type;
+	hasSourceAndDestinationReversed = other.hasSourceAndDestinationReversed;
+	allowConnectionThroughChannel = other.allowConnectionThroughChannel;
 };
 
-pinpair& pinpair::operator=(const pinpair other)
+pinpair& pinpair::operator=(const pinpair& other)
 {
 	pins[0] = other.pins[0];
 	pins[1] = other.pins[1];
 	id = other.id;
 	type = other.type;
+	hasSourceAndDestinationReversed = other.hasSourceAndDestinationReversed;
+	allowConnectionThroughChannel = other.allowConnectionThroughChannel;
 
 	return *this;
 };

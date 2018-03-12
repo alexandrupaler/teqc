@@ -9,5 +9,6 @@
 #define WALKUSEDEND -6
 
 #define NOPRIORITY -1
+#define PREVIOUSPATH -89
 
 #endif /* PINCONSTANTS_H_ */

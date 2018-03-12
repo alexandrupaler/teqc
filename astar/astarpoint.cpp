@@ -1,5 +1,6 @@
 #include "stdlib.h"
 #include "stdio.h"
+#include <set>
 
 #include "astar/astarpoint.h"
 
@@ -58,18 +59,33 @@ int Point::getGScore(Point* p)
 	long score = p->g + (abs(p->getX() - getX()) + abs(p->getY() - getY()) + abs(p->getZ() - getZ()));
 			//p->g + ((getX() == p->getX() || getY() == p->getY() || getZ() == p->getZ()) ? 10 : 14);
 
-	if(Point::useSecondHeuristic && abs(p->getZ() - getZ()) != 0)
+//	if(Point::useSecondHeuristic && abs(p->getZ() - getZ()) != 0)
+//	if(!Point::useSecondHeuristic && abs(p->getX() - getX()) != 0)
+//	{
+//		score -= 10;
+//	}
+	if(Point::useSecondHeuristic && abs(p->getY() - getY()) != 0)
 	{
-		score -= 5;
+		score -= 25;
 	}
 
 	return score;
 }
 
-int Point::getHScore(Point* p)
+long Point::getHScore(Point* p)
 {
 	//Manhattan?
-    return ((abs(p->getX() - getX()) + abs(p->getY() - getY()) + abs(p->getZ() - getZ())) * 20)/10;
+	long factor = Point::useSecondHeuristic ? 10 : 2;
+    long score = factor * (abs(p->getX() - getX())
+    				+ abs(p->getY() - getY())
+    				+ abs(p->getZ() - getZ()));
+
+//    if(!Point::useSecondHeuristic && abs(p->getX() - getX()) != 0)
+//	{
+//		score -= 5;
+//	}
+
+    return score;
 }
 
 int Point::getGScore()
@@ -77,7 +93,7 @@ int Point::getGScore()
     return g;
 }
 
-int Point::getHScore()
+long Point::getHScore()
 {
     return h;
 }
@@ -114,11 +130,14 @@ void Point::setWalkAndPriority(int walk, int priority, std::string journalMessag
 	this->walkable = walk;
 	this->blockPriority = priority;
 
-	if(blockJournal.size() == Point::heuristicParam->pointJournalLength)
+	if(Point::heuristicParam->pointJournalLength > 0)
 	{
-		blockJournal.erase(blockJournal.begin());
+		if(blockJournal.size() == Point::heuristicParam->pointJournalLength)
+		{
+			blockJournal.erase(blockJournal.begin());
+		}
+		blockJournal.push_back(journalMessage);
 	}
-	blockJournal.push_back(journalMessage);
 }
 
 void Point::printBlockJournal()

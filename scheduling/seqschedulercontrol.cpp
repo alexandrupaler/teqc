@@ -4,12 +4,15 @@ void seqschedulercontrol::updateControl(bfsState& state, heuristicparameters& he
 {
 	for(int boxType = 0; boxType < 2; boxType++)
 	{
-		int necessary = state.toScheduleInputs[boxType].size();
+		int necessary = state.toScheduleInputs[boxType].size() - state.septNrAssignedInputs;
 		int available = connManager.getUnusedReservedNr(boxType);
 
 		triggerSchedule[boxType] = (available < necessary);
 	}
 
+	/**
+	 * 3 NOV
+	 */
 	assumedInputTimeCoordinate = state.getMaximumInputLevel();// timeWhenPoolEnds;//iterationState.getMinimumLevel() - roundLength;
 
 	if(triggerSchedule[0] || triggerSchedule[1])
@@ -27,8 +30,11 @@ void seqschedulercontrol::updateControl(bfsState& state, heuristicparameters& he
 			}
 		}
 
-		boxStartTimeCoordinate = assumedInputTimeCoordinate - boxTimeDepth - heuristic.timeBeforePoolEnd;
+		assumedInputTimeCoordinate = state.septCurrentlyMaxLevel;
 
+		boxStartTimeCoordinate = assumedInputTimeCoordinate;// - boxTimeDepth - heuristic.timeBeforePoolEnd;
+
+		//achievedCost = heuristic.connectionBufferTimeLength/*HEURISTIC*/ + (boxStartTimeCoordinate + boxTimeDepth);
 		achievedCost = heuristic.connectionBufferTimeLength/*HEURISTIC*/ + (boxStartTimeCoordinate + boxTimeDepth);
 	}
 	else
@@ -74,6 +80,7 @@ long seqschedulercontrol::getTimeWhenPoolEnds()
 
 void seqschedulercontrol::cancelTrigger()
 {
-	return;//do nothing
+	triggerSchedule[0] = false;
+	triggerSchedule[1] = false;
 }
 

@@ -10,16 +10,15 @@ void heuristicparameters::init()
 	/*
 	 * Geometry related values are units of DELTA
 	 */
-	connPoolStart = 8;
-	maxConnections = 10;
+	connPoolStart = 3;
+	maxConnections = 10000;
 
-	connectionBufferTimeLength = 8;//20
-	connectionHeight = 9;//4;
-	manhattanMultiplier = 150;
-	timeBeforePoolEnd = /*20*/ 6;//ASAP 6
-	pointJournalLength = 6;
+	connectionBufferTimeLength = 1;//8;//20
+	connectionHeight = 1/*9*/;//4;
+	manhattanMultiplier = 150;//150
+	timeBeforePoolEnd = /*20*/ 1;//ASAP 6
+	pointJournalLength = 0/*6*/;//no journaling
 
-//	connectionBoxHeight = 2 * connectionHeight + 1;//9;
-	connectionBoxHeight = connectionHeight + 1;//9;
+	connectionBoxHeight = connectionHeight - 1; //connectionHeight + 1;//9;
 	connectionBoxWidthMargin = 4;
 }

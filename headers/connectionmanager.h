@@ -9,6 +9,10 @@
 #include "recycling/bfsstate.h"
 #include "astar/astaralg.h"
 
+#define EXTENDCONNECTION 0
+#define BOXCONNECTION 1
+#define CIRCUITCONNECTION 2
+
 struct connectionManager
 {
 	connectionsPool pool;
@@ -29,9 +33,9 @@ struct connectionManager
 
 	void removeConnections(int boxType, std::vector<int>& operationId);
 
-	void updateConnections(long timeWhenPoolEnds, long height, std::vector<pinpair>& toconn);
+	void updateConnections(int typeOfConnection, long timeWhenPoolEnds, long height, std::vector<pinpair>& toconn);
 
-	void releaseIfNotUsed(long inputTimeCoordinate, long connectionPinHeight, Pathfinder& pathfinder);
+	void releaseIfNotUsed(long inputTimeCoordinate, long connectionPinHeight, Pathfinder& pathfinder, bool checkInPoints);
 
 	bool finaliseAssignedConnections(bfsState& state, std::vector<pinpair>& circPins, std::vector<pinpair>& toconn);
 

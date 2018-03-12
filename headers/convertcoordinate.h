@@ -1,6 +1,7 @@
 #ifndef CONVERTCOORDINATE_H_
 #define CONVERTCOORDINATE_H_
 
+#define CIRCUITNOAXIS -1
 #define CIRCUITWIDTH 0
 #define CIRCUITDEPTH 1
 #define CIRCUITHEIGHT 2
@@ -14,25 +15,16 @@
  */
 class convertcoordinate{
 public:
-	convertcoordinate()
-	{
-		values.resize(3, INT_MIN);
-	};
+	convertcoordinate();
 
-	convertcoordinate(const convertcoordinate& other)
-	{
-		values = other.values;
-	};
+	convertcoordinate(const convertcoordinate& other);
 
-	long& operator[](int i){return values[i];};
-	long& at(int i){return values[i];};
+	long& operator[](int i);
 
-	convertcoordinate& operator=(const convertcoordinate other)
-	{
-		values = other.values;
+	long& at(int i);
 
-		return *this;
-	};
+	convertcoordinate& operator=(const convertcoordinate& other);
+	bool operator==(const convertcoordinate& other);
 
 	/**
 	 * Note: I am mixing the printing of coordinates: sometimes I use direct access, sometimes the toString

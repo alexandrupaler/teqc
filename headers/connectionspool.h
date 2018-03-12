@@ -40,7 +40,9 @@ struct connectionsPool
 
 	connectionsPool();
 
-	std::set<size_t> getAllUnavailable();
+	std::set<size_t> getReservedButNotAssigned();
+
+	std::set<size_t> getAssigned();
 
 	void preReleaseConnection(int boxType, size_t connNr);
 

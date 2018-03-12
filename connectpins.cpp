@@ -49,45 +49,138 @@ int connectpins::offsetChangeIndexAndStore(convertcoordinate& p, int pos, int of
 	return connectionsGeometry.addCoordinate(p);
 }
 
-void connectpins::connectCanonical(pinpair& coordline)
+void connectpins::connectCanonicalOne(pinpair& coordline, std::vector<Point*>& path)
 {
-	convertcoordinate circCoord = extractPoint(DESTPIN, coordline).coord;//from the input
 	convertcoordinate distCoord = extractPoint(SOURCEPIN, coordline).coord;//from the distillationbox
+	convertcoordinate circCoord = extractPoint(DESTPIN, coordline).coord;//from the input
 
-//	int pin = getCircuitPinIndex(circCoord);
-//	int additionalPin = getAfterFail2(distCoord, circCoord);
+	Point* start = pathfinder.getOrCreatePoint(distCoord[CIRCUITWIDTH], distCoord[CIRCUITDEPTH], distCoord[CIRCUITHEIGHT], false);
+	path.push_back(start);
 
-	int i1 = connectionsGeometry.coordMap[circCoord.toString(',')];//p1[INDEX];
-	int i2 = connectionsGeometry.coordMap[distCoord.toString(',')];//p2[INDEX];
+	Point* m1 = pathfinder.getOrCreatePoint(distCoord[CIRCUITWIDTH], circCoord[CIRCUITDEPTH], distCoord[CIRCUITHEIGHT], false);
+	markSegmentInPathFinderUsed(start, m1, CIRCUITDEPTH);
+	path.push_back(m1);
 
-	int previ1 = i1;
-	//i1 = offsetChangeIndexAndStore(circCoord, CIRCUITDEPTH, -additionalPin*4 - DELTA*(pin==0));
-	//geom.addSegment(previ1, i1);
+	Point* m2 = pathfinder.getOrCreatePoint(circCoord[CIRCUITWIDTH], circCoord[CIRCUITDEPTH], distCoord[CIRCUITHEIGHT], false);
+	markSegmentInPathFinderUsed(m1, m2, CIRCUITWIDTH);
+	path.push_back(m2);
 
-	//move upwards
-	previ1 = i1;
-	i1 = offsetChangeIndexAndStore(circCoord, CIRCUITHEIGHT, distCoord[CIRCUITHEIGHT] - circCoord[CIRCUITHEIGHT]);//to move to layer
-	connectionsGeometry.addSegment(previ1, i1);
-
-	//move horiz
-	previ1 = i1;
-	i1 = offsetChangeIndexAndStore(circCoord, CIRCUITWIDTH, distCoord[CIRCUITWIDTH] - circCoord[CIRCUITWIDTH]);//to move to layer
-	connectionsGeometry.addSegment(previ1, i1);
-
-	connectionsGeometry.addSegment(i2, i1);
+	Point* end = pathfinder.getOrCreatePoint(circCoord[CIRCUITWIDTH], circCoord[CIRCUITDEPTH], circCoord[CIRCUITHEIGHT], false);
+	markSegmentInPathFinderUsed(m2, end, CIRCUITHEIGHT);
+	path.push_back(end);
 }
 
-bool connectpins::connectWithAStar(pinpair& coordline)
+void connectpins::connectCanonicalTwo(pinpair& coordline, std::vector<Point*>& path)
 {
+	convertcoordinate distCoord = extractPoint(SOURCEPIN, coordline).coord;//from the distillationbox
+	convertcoordinate circCoord = extractPoint(DESTPIN, coordline).coord;//from the input
+
+	Point* start = pathfinder.getOrCreatePoint(distCoord[CIRCUITWIDTH], distCoord[CIRCUITDEPTH], distCoord[CIRCUITHEIGHT], false);
+	path.push_back(start);
+
+	Point* m1 = pathfinder.getOrCreatePoint(circCoord[CIRCUITWIDTH], distCoord[CIRCUITDEPTH], distCoord[CIRCUITHEIGHT], false);
+	markSegmentInPathFinderUsed(start, m1, CIRCUITWIDTH);
+	path.push_back(m1);
+
+	Point* m2 = pathfinder.getOrCreatePoint(circCoord[CIRCUITWIDTH], distCoord[CIRCUITDEPTH], circCoord[CIRCUITHEIGHT], false);
+	markSegmentInPathFinderUsed(m1, m2, CIRCUITHEIGHT);
+	path.push_back(m2);
+
+	Point* end = pathfinder.getOrCreatePoint(circCoord[CIRCUITWIDTH], circCoord[CIRCUITDEPTH], circCoord[CIRCUITHEIGHT], false);
+	markSegmentInPathFinderUsed(m2, end, CIRCUITDEPTH);
+	path.push_back(end);
+}
+
+void connectpins::interchangeStartEnd(Point*& start, Point*& end)
+{
+	Point* x = start;
+	start = end;
+	end = x;
+}
+
+void connectpins::processFoundPath(pinpair& coordline, std::vector<Point*>& path)
+{
+	/*
+	 * If a solution was found
+	 */
+	if (path.size() > 0)
+	{
+		/*
+		 * Generate the corners of the path
+		 */
+		std::vector < convertcoordinate > corners;
+		for (std::vector<Point*>::iterator it = path.begin(); it != path.end();
+				it++)
+		{
+			filterAndAddToCorners(corners, *it);
+
+			if ((*it)->walkable != WALKFREE
+					&& (it != path.begin() && it != (path.end()--)))
+			{
+				printf("HOW DID THIS HAPPEN? PATH CONTAINS USED POINT!!!!!\n");
+				(*it)->printBlockJournal();
+			}
+
+			/*
+			 * the end of a path is not blocked.
+			 * path is constructed backwards in pathfinder.
+			 */
+			if (it == path.begin())
+			{
+				//ai grija la cele conectate la circuit. acolo trebuie USED
+				//(*it)->walkable = WALKBLOCKED_GUIDE;
+				(*it)->setWalkAndPriority(WALKFREE, PREVIOUSPATH,
+						" -> path ends here");
+
+			}
+			else
+			{
+				(*it)->setWalkAndPriority(WALKUSED, PREVIOUSPATH,
+						" -> path element");
+			}
+		}
+
+		int prevIdx = -1;
+		/*
+		 * Add  segments between the corners of the defect connection
+		 */
+		for (std::vector<convertcoordinate>::iterator it = corners.begin();
+				it != corners.end(); it++)
+		{
+			int idx = connectionsGeometry.addCoordinate(*it);
+
+			if (prevIdx != -1)
+			{
+				connectionsGeometry.addSegment(idx, prevIdx);
+			}
+			prevIdx = idx;
+		}
+	}
+	else
+	{
+		convertcoordinate distCoord = coordline.getPinDetail(SOURCEPIN).coord;
+		convertcoordinate circCoord = coordline.getPinDetail(DESTPIN).coord;
+
+		/*used for debugging purposes*/
+		int idx1 = connectionsGeometry.addCoordinate(circCoord);
+		int idx2 = connectionsGeometry.addCoordinate(distCoord);
+		connectionsGeometry.addSegment(idx1, idx2);
+	}
+}
+
+bool connectpins::connectWithAStar(pinpair& coordline, std::vector<Point*>& path)
+{
+	pathfinder.allowConnectionThroughChannel = coordline.allowConnectionThroughChannel;
+
 	convertcoordinate distCoord = coordline.getPinDetail(SOURCEPIN).coord;
 	convertcoordinate circCoord = coordline.getPinDetail(DESTPIN).coord;
-
-	printf("======\nsrc:%s dst:%s mindist:%ld \n", distCoord.toString(',').c_str(),
-			circCoord.toString(',').c_str(),
-			coordline.minDistBetweenPins());
+//
+//	printf("======\nsrc:%s dst:%s mindist:%ld \n", distCoord.toString(',').c_str(),
+//			circCoord.toString(',').c_str(),
+//			coordline.minDistBetweenPins());
 
 	int axes[] = {CIRCUITWIDTH, CIRCUITDEPTH, CIRCUITHEIGHT};
-	std::vector<Point*> path;
+//	std::vector<Point*> path;
 	PathfinderCode err = PathFinderOtherErr;/*init err*/
 
 	//HEURISTIC: NUMBER OF STEPS TO TRY CONSTRUCT PATH *50
@@ -120,13 +213,26 @@ bool connectpins::connectWithAStar(pinpair& coordline)
 				 * the point is a geometry box pin, therefore take the next point
 				 * and reinsert the current start after a path was computed*/
 
-				otherEnd = pathfinder.getOrCreatePoint(circCoord[CIRCUITWIDTH], circCoord[CIRCUITDEPTH], circCoord[CIRCUITHEIGHT] + DELTA, true);
+//				int randH = ((int)(drand48() * 100) * DELTA);
+//				printf("randH%d\n", randH);
+
+				int randH = DELTA;
+				//the circCoord is in the channel of the geometry
+				//setting true at getOrCreatePoint will block the point, although it should be free
+				//TODO: set to false
+				otherEnd = pathfinder.getOrCreatePoint(circCoord[CIRCUITWIDTH], circCoord[CIRCUITDEPTH], circCoord[CIRCUITHEIGHT] + randH, false);
 			}
 
+			//23.05.2017
+			if(coordline.hasSourceAndDestinationReversed)
+			{
+				interchangeStartEnd(start, end);
+				interchangeStartEnd(otherStart, otherEnd);
+			}
 
 			err = pathfinder.aStar(otherStart != NULL ? otherStart : start,
 							otherEnd !=  NULL ? otherEnd : end,
-							axes, steps, path);
+							axes, steps, path, coordline.hasSourceAndDestinationReversed ? -1 : 1);
 
 			if(otherStart != NULL && err == PathFinderOK)
 			{
@@ -158,7 +264,7 @@ bool connectpins::connectWithAStar(pinpair& coordline)
 				printf("END SOONER THAN START \n");
 				break;
 			}
-	//		steps *= 2;
+//			steps *= 100;
 			Point::useSecondHeuristic = true;
 		}
 		Point::useSecondHeuristic = false;
@@ -167,68 +273,7 @@ bool connectpins::connectWithAStar(pinpair& coordline)
 		break;
 	}
 
-	/*
-	 * If a solution was found
-	 */
-	if(path.size() > 0)
-	{
-		/*
-		 * Generate the corners of the path
-		 */
-		std::vector<convertcoordinate> corners;
-		for(std::vector<Point*>::iterator it = path.begin(); it != path.end(); it++)
-		{
-			filterAndAddToCorners(corners, *it);
-
-			if((*it)->walkable != WALKFREE && (it != path.begin() && it != (path.end()--)))
-			{
-				printf("HOW DID THIS HAPPEN? PATH CONTAINS USED POINT!!!!!\n");
-				(*it)->printBlockJournal();
-			}
-
-			/*
-			 * the end of a path is not blocked.
-			 * path is constructed backwards in pathfinder.
-			 */
-			if(it == path.begin())
-			{
-				//ai grija la cele conectate la circuit. acolo trebuie USED
-				//(*it)->walkable = WALKBLOCKED_GUIDE;
-				(*it)->setWalkAndPriority(WALKFREE, NOPRIORITY, " -> path ends here");
-
-			}
-			else
-			{
-				(*it)->setWalkAndPriority(WALKUSED, NOPRIORITY, " -> path element");
-			}
-		}
-
-		int prevIdx = -1;
-		/*
-		 * Add  segments between the corners of the defect connection
-		 */
-		for(std::vector<convertcoordinate>::iterator it = corners.begin(); it != corners.end(); it++)
-		{
-			int idx = connectionsGeometry.addCoordinate(*it);
-
-			if(prevIdx != -1)
-			{
-				connectionsGeometry.addSegment(idx, prevIdx);
-			}
-			prevIdx = idx;
-		}
-
-		return true;
-	}
-	else
-	{
-		/*used for debugging purposes*/
-		int idx1 = connectionsGeometry.addCoordinate(circCoord);
-		int idx2 = connectionsGeometry.addCoordinate(distCoord);
-		connectionsGeometry.addSegment(idx1, idx2);
-	}
-
-	return false;
+	return (path.size() > 0);
 }
 
 void connectpins::filterAndAddToCorners(std::vector<convertcoordinate>& corners, Point* current)
@@ -246,38 +291,38 @@ void connectpins::filterAndAddToCorners(std::vector<convertcoordinate>& corners,
 	corners.push_back(current->coord);
 }
 
-bool connectpins::processPins(char* fname, int method)
-{
-	FILE* fp = fopen(fname, "r");
-
-	while(!feof(fp))
-	{
-		pinpair cl;
-		for(int i=0; i<6; i++)
-		{
-			long nr = -10000;
-
-			fscanf(fp, "%ld", &nr);
-			cl[OFFSETNONCOORD + i] = nr;
-		}
-
-		if(!feof(fp))
-		{
-			switch (method) {
-				case CANONICAL:
-					connectCanonical(cl);
-					break;
-				case ASTAR:
-					connectWithAStar(cl);
-					break;
-			}
-		}
-	}
-
-	fclose(fp);
-
-	return true;
-}
+//bool connectpins::processPins(char* fname, int method)
+//{
+//	FILE* fp = fopen(fname, "r");
+//
+//	while(!feof(fp))
+//	{
+//		pinpair cl;
+//		for(int i=0; i<6; i++)
+//		{
+//			long nr = -10000;
+//
+//			fscanf(fp, "%ld", &nr);
+//			cl[OFFSETNONCOORD + i] = nr;
+//		}
+//
+//		if(!feof(fp))
+//		{
+//			switch (method) {
+//				case CANONICAL:
+//					connectCanonical(cl);
+//					break;
+//				case ASTAR:
+//					connectWithAStar(cl);
+//					break;
+//			}
+//		}
+//	}
+//
+//	fclose(fp);
+//
+//	return true;
+//}
 
 void connectpins::setWalkable(pindetails& detail, bool enforce, int whichBlockType)
 {
@@ -441,6 +486,21 @@ void connectpins::unblockPins(std::vector<pinpair>& pins)
 	}
 }
 
+void connectpins::markSegmentInPathFinderUsed(Point* start, Point* stop, size_t axis)
+{
+	long coord[3] = {0, 0, 0};
+	coord[CIRCUITWIDTH] = start->coord[CIRCUITWIDTH];
+	coord[CIRCUITDEPTH] = start->coord[CIRCUITDEPTH];
+	coord[CIRCUITHEIGHT] = start->coord[CIRCUITHEIGHT];
+
+	while(coord[axis] <= stop->coord[axis])
+	{
+		coord[axis] += DELTA;
+		Point* x = pathfinder.getOrCreatePoint(coord[CIRCUITWIDTH], coord[CIRCUITDEPTH], coord[CIRCUITHEIGHT], false);
+		x->setWalkAndPriority(WALKUSED, NOPRIORITY, "");
+	}
+}
+
 
 bool connectpins::processPins(std::vector<pinpair>& pins, int method)
 {
@@ -448,9 +508,26 @@ bool connectpins::processPins(std::vector<pinpair>& pins, int method)
 	for(std::vector<pinpair>::iterator it = pins.begin();
 			it != pins.end(); it++)
 	{
+//		if(count % 2 == 1)
+//			continue;
+
+		count++;
+		printf("nr %d/%d ", count, pins.size());
+
+		std::vector<Point*> path;
+		path.clear();
+
+		printf("======\nsrc:%s dst:%s mindist:%ld \n",
+				(*it).getPinDetail(SOURCEPIN).coord.toString(',').c_str(),
+				(*it).getPinDetail(DESTPIN).coord.toString(',').c_str(),
+				(*it).minDistBetweenPins());
+
 		switch (method) {
-			case CANONICAL:
-				connectCanonical(*it);
+			case CANONICAL1:
+				connectCanonicalOne(*it, path);
+				break;
+			case CANONICAL2:
+				connectCanonicalTwo(*it, path);
 				break;
 			case ASTAR:
 				setWalkable(it->getPinDetail(SOURCEPIN), REMOVE_BLOCK, WALKBLOCKED_OCCUPY);
@@ -461,31 +538,39 @@ bool connectpins::processPins(std::vector<pinpair>& pins, int method)
 
 				int distIns = it->minDistBetweenPins();
 				if(distIns == 0)
-					continue;
-
-				if(!connectWithAStar(*it))
-					return false;
+				{
+					printf ("skip. zero length\n");
+				}
+				else
+				{
+					if(!connectWithAStar(*it, path))
+					{
+						return false;
+					}
+				}
 
 				setWalkable(it->getPinDetail(SOURCEPIN), ENFORCE_BLOCK, WALKBLOCKED_GUIDE);
 				setWalkable(it->getPinDetail(DESTPIN), ENFORCE_BLOCK, WALKBLOCKED_GUIDE);
 
 				break;
 		}
-		count++;
-//		if(count == 8)
+
+		processFoundPath(*it, path);
+
+//		if(count == 150)
 //			break;
 	}
 
-	/**
-	 * Unblock the unblockable
-	 */
+//	/**
+//	 * Unblock the unblockable
+//	 */
 	for(std::vector<pinpair>::iterator it = pins.begin(); it != pins.end(); it++)
 	{
-		setWalkable(it->getPinDetail(SOURCEPIN), REMOVE_BLOCK, WALKBLOCKED_GUIDE);
-		setWalkable(it->getPinDetail(DESTPIN), REMOVE_BLOCK, WALKBLOCKED_GUIDE);
+//		setWalkable(it->getPinDetail(SOURCEPIN), REMOVE_BLOCK, WALKBLOCKED_GUIDE);
+//		setWalkable(it->getPinDetail(DESTPIN), REMOVE_BLOCK, WALKBLOCKED_GUIDE);
 
-		it->getPinDetail(SOURCEPIN).removeBlocks();//blocks.clear();
-		it->getPinDetail(DESTPIN).removeBlocks();//blocks.clear();
+//		it->getPinDetail(SOURCEPIN).removeBlocks();//blocks.clear();
+//		it->getPinDetail(DESTPIN).removeBlocks();//blocks.clear();
 	}
 
 	return true;

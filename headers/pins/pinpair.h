@@ -23,7 +23,7 @@ public:
 
 	pinpair(const pinpair& other);
 
-	pinpair& operator=(const pinpair other);
+	pinpair& operator=(const pinpair& other);
 
 	long& operator[](int i);
 
@@ -36,6 +36,21 @@ public:
 	bool isColinear();
 
 	int getType();
+
+	/**
+	 * The source is always earlier in time than the destination when
+	 * pinpairs are used by A* to compute connections between boxes and connection
+	 * pool, or connection pool and circuit
+	 * However, it is easier/faster for A* to compute pathes from dense
+	 * regions to undense regions. Therefore, for connections between boxes and
+	 * pool, source and destination are reversed, and A* has to know this
+	 */
+	bool hasSourceAndDestinationReversed;
+
+	/**
+	 * Some connections should be allowed to go through the connections channel
+	 */
+	bool allowConnectionThroughChannel;
 
 protected:
 	pindetails pins[2];

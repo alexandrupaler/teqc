@@ -18,10 +18,10 @@ public:
 //	std::set<int> scheduledInputs;
 //	std::vector<int> currentIdProWire;
 
-	std::vector<recyclegate*> toScheduleInputs[2];
+	std::set<recyclegate*> toScheduleInputs[2];
 	std::vector<recyclegate*> toDraw;
 	std::set<recyclegate*> scheduledInputs;
-	std::map<wireelement*, recyclegate*> currentGateProWire;
+//	std::map<wireelement*, recyclegate*> currentGateProWire;
 
 	//	int nrLines;
 
@@ -32,15 +32,18 @@ public:
 
 	bool isSomethingToDo();
 	void init(std::vector<recyclegate*>& inputs);
+	void septInit(std::vector<recyclegate*>& inputs, size_t nrLines);
 
 	/*
 	 * The lines to be checked for computing the next minLevel
 	 */
-	std::set<wireelement*> minLevelLinesToCheck;
-	void initLinesToCheck();
-	void removeFromLinesToCheck(wireelement* line);
-	wireelement* getMinLevelFromLinesToCheck(long& minLevel);
+//	std::set<wireelement*> minLevelLinesToCheck;
+//	void initLinesToCheck();
+//	void removeFromLinesToCheck(wireelement* line);
+//	wireelement* getMinLevelFromLinesToCheck(long& minLevel);
 	void resetToDrawAndToSchedule();
+
+	~bfsState();
 
 public:
 	long getRequiredMaximumInputLevel();
@@ -56,6 +59,15 @@ public:
 	void setCircuitFinished(bool value);
 
 	size_t getNrLines();
+
+	/*
+	 * members added on 06.09.2017
+	 */
+	long septLastIndex;
+	std::vector<recyclegate*> septBfs;
+	long septNrLines;
+	long septCurrentlyMaxLevel;
+	int septNrAssignedInputs;
 
 private:
 	/*

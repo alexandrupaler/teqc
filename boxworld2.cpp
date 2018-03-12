@@ -45,11 +45,18 @@ void boxworld2::pinsVertical(int pinNr, int boxType, long& x, long&y, long& z)
 	z = currBoxCoords[CIRCUITHEIGHT] + DELTA + pinNr * currentConfig.distBetweenBoxes[CIRCUITHEIGHT] + DELTA;
 }
 
+void boxworld2::pinsVerticalLeft(int pinNr, int boxType, long& x, long&y, long& z)
+{
+	x = currBoxCoords[CIRCUITWIDTH] + currentConfig.boxSize[boxType][CIRCUITWIDTH] - DELTA;
+	y = currBoxCoords[CIRCUITDEPTH] + currentConfig.boxSize[boxType][CIRCUITDEPTH];
+	z = currBoxCoords[CIRCUITHEIGHT] + (1 - pinNr) * currentConfig.distBetweenBoxes[CIRCUITHEIGHT] + DELTA;
+}
+
 void boxworld2::pinsHorizontalRight(int pinNr, int boxType, long& x, long&y, long& z)
 {
-	x = currBoxCoords[CIRCUITWIDTH] + DELTA + pinNr * currentConfig.distBetweenBoxes[CIRCUITWIDTH];
+	x = currBoxCoords[CIRCUITWIDTH] + /*DELTA + */pinNr * currentConfig.distBetweenBoxes[CIRCUITWIDTH];
 	y = currBoxCoords[CIRCUITDEPTH] + currentConfig.boxSize[boxType][CIRCUITDEPTH];
-	z = currBoxCoords[CIRCUITHEIGHT] + DELTA/*put the contacts a bit higher*/;
+	z = currBoxCoords[CIRCUITHEIGHT];// + DELTA/*put the contacts a bit higher*/;
 }
 
 void boxworld2::pinsHorizontalLeft(int pinNr, int boxType, long& x, long&y, long& z)
@@ -87,6 +94,9 @@ void boxworld2::saveBoxAndPinCoords(int nr, int boxType)
 		case PINSVERTICAL:
 			pinsVertical(i, boxType, x, y, z);
 			break;
+		case PINSVERTICALLEFT:
+			pinsVerticalLeft(i, boxType, x, y, z);
+			break;
 		case PINSHORIZRIGHT:
 			pinsHorizontalRight(i, boxType, x, y, z);
 			break;
@@ -99,9 +109,26 @@ void boxworld2::saveBoxAndPinCoords(int nr, int boxType)
 
 		/*wrong thing to do, the order of the pins is 1,0 instead of 0,1
 		  this has historical reasons...*/
-		bp[OFFSETNONCOORD + 3*(1-i) + CIRCUITWIDTH] = x;
-		bp[OFFSETNONCOORD + 3*(1-i) + CIRCUITDEPTH] = y;
-		bp[OFFSETNONCOORD + 3*(1-i) + CIRCUITHEIGHT] = z;
+//		int pos = OFFSETNONCOORD + 3*(1-i);
+		/*
+		 * 3 NOV
+		 */
+		int pos = OFFSETNONCOORD + 3*i;
+		bool dualPins = true;
+		if(dualPins)
+		{
+			//the coordinates have to be even?
+			bp[pos + CIRCUITWIDTH] = x + 3;
+			bp[pos + CIRCUITDEPTH] = y - 3;
+			bp[pos + CIRCUITHEIGHT] = z - 3;
+		}
+		else
+		{
+			bp[pos + CIRCUITWIDTH] = x;
+			bp[pos + CIRCUITDEPTH] = y ;
+			bp[pos + CIRCUITHEIGHT] = z;
+		}
+
 	}
 
 	boxPins.push_back(bp);
@@ -124,8 +151,8 @@ BoundingBox boxworld2::generateBounds(int width, int depth, int height, int boxT
 {
 	BoundingBox bb;
 
-	bb.edges[0].first  = width;
-	bb.edges[0].second = width + currentConfig.getBoxTotalDimension(boxTypeIndex, CIRCUITWIDTH);
+	bb.edges[0].first  = width - currentConfig.getBoxTotalDimension(boxTypeIndex, CIRCUITWIDTH);
+	bb.edges[0].second = width;
 
 	bb.edges[1].first  = depth;
 	bb.edges[1].second = depth + currentConfig.getBoxTotalDimension(boxTypeIndex, CIRCUITDEPTH);
@@ -481,7 +508,10 @@ void boxworld2::initScheduleGreedy(double aStateFail, double yStateFail, double 
 
 	long geomWidth = geomBoundingBox.edges[CIRCUITWIDTH].second - geomBoundingBox.edges[CIRCUITWIDTH].first;
 	long geomHeight = geomBoundingBox.edges[CIRCUITHEIGHT].second - geomBoundingBox.edges[CIRCUITHEIGHT].first;
-	setConnectionBoxWidth(geomWidth);
+
+//	setConnectionBoxWidth(geomWidth);
+//	15.05.2017
+	setConnectionBoxWidth(heuristicParam->connPoolStart * DELTA);
 
 	/*TODO: Heuristic*/
 	setConnectionBoxHeight(geomHeight + heuristicParam->connectionBoxHeight * DELTA);
@@ -541,14 +571,9 @@ void boxworld2::placeBoxesInGreedy(long reqLevelDepth /*circuitInputTimeDepth*/,
 	{
 		//merg cu un nivel mai sus
 		greedyLevel.depth = reqLevelDepth;
-//		if(rtree.GetSize() == 2)/*generate bound each time*/
-		{
-			//generate at io coordinate
-//			greedyLevel.lastBounding = generateBounds(circIOCoord, boxType);
-			/*17.02.2017 - generate at fixed coordinate*/
-			greedyLevel.lastMoveIndex = 0;
-			greedyLevel.lastBounding = generateBounds(1, 0 /*fake value*/, 1, boxType);
-		}
+
+		greedyLevel.lastMoveIndex = 0;
+		greedyLevel.lastBounding = generateBounds(1, 0 /*fake value, will be changed below*/, 1, boxType);
 
 		greedyLevel.lastBounding.edges[CIRCUITDEPTH].first = reqLevelDepth;
 		greedyLevel.lastBounding.edges[CIRCUITDEPTH].second = reqLevelDepth + currentConfig.boxSize[boxType][CIRCUITDEPTH];
@@ -708,19 +733,62 @@ void boxworld2::placeBoxesInGreedy(long reqLevelDepth /*circuitInputTimeDepth*/,
 #endif
 }
 
+void boxworld2::scheduleSingleBox(long boxStartTimeCoordinate, int boxType)
+{
+	/*
+	 * Addition of boxes
+	 */
+
+	//placeBoxesInGreedy(boxStartTimeCoordinate, boxType, nrBoxesToAdd);
+	/*
+	 * 3 NOV - Dual coordinates of the pins
+	 */
+	currBoxCoords[CIRCUITWIDTH] = 1 - DELTA;
+	currBoxCoords[CIRCUITDEPTH] = boxStartTimeCoordinate * DELTA + 1;
+	currBoxCoords[CIRCUITHEIGHT] = 2 * DELTA + 1;
+
+//	currBoxCoords[CIRCUITWIDTH] = 4 - DELTA;
+//	currBoxCoords[CIRCUITDEPTH] = boxStartTimeCoordinate * DELTA - 4;
+//	currBoxCoords[CIRCUITHEIGHT] = 2 * DELTA + 4;
+
+	//getPrevHalfDelta(1) == 4 in versiunea curenta
+
+	saveBoxAndPinCoords(FAKEID, boxType);
+	/*
+	 * Update maxdepth
+	 */
+	long newDepth = currentConfig.getBoxTotalDimension(boxType, CIRCUITDEPTH)
+			+ currBoxCoords[CIRCUITDEPTH];
+	greedyLevel.maxDepth =
+			greedyLevel.maxDepth < newDepth ? newDepth : greedyLevel.maxDepth;
+
+	BoundingBox startBox;
+	startBox.edges[0].first = currBoxCoords[CIRCUITWIDTH];
+	startBox.edges[0].second = currBoxCoords[CIRCUITWIDTH] + currentConfig.getBoxTotalDimension(boxType, CIRCUITWIDTH);
+	startBox.edges[1].first = currBoxCoords[CIRCUITDEPTH];
+	startBox.edges[1].second = currBoxCoords[CIRCUITDEPTH] + currentConfig.getBoxTotalDimension(boxType, CIRCUITDEPTH);
+	startBox.edges[2].first = currBoxCoords[CIRCUITHEIGHT];
+	startBox.edges[2].second = currBoxCoords[CIRCUITHEIGHT] + currentConfig.getBoxTotalDimension(boxType, CIRCUITHEIGHT);
+	rtree.Insert(rtree.GetSize(), startBox);
+}
+
 std::queue<int> boxworld2::greedyScheduleBoxes(long boxStartTimeCoordinate, int boxType, int available, int necessary)
 {
 	std::queue<int> greedyBoxPinIds;
 
-	computeadditional ca;
+//	computeadditional ca;
+//	int total = ca.findParam(necessary - available,
+//			boxType == ATYPE ? greedyLevel.aStateFail : greedyLevel.yStateFail,
+//			boxType == ATYPE ? greedyLevel.tGateFail : greedyLevel.pGateFail);
+//
+//	int nrBoxesToAdd = total;
 
-	int total = ca.findParam(necessary - available,
-			boxType == ATYPE ? greedyLevel.aStateFail : greedyLevel.yStateFail,
-			boxType == ATYPE ? greedyLevel.tGateFail : greedyLevel.pGateFail);
+	/*
+	 * ADD ONE BOX AT A TIME
+	 */
+	int nrBoxesToAdd = 1;
 
-	int nrBoxesToAdd = total;
-
-	printf(" add%d\n", nrBoxesToAdd);
+	printf(" add %d boxes\n", nrBoxesToAdd);
 
 	/*
 	* Pre-Simulation:
@@ -731,7 +799,8 @@ std::queue<int> boxworld2::greedyScheduleBoxes(long boxStartTimeCoordinate, int 
 	/*
 	 * Addition of boxes
 	 */
-	placeBoxesInGreedy(boxStartTimeCoordinate, boxType, nrBoxesToAdd);
+	//placeBoxesInGreedy(boxStartTimeCoordinate, boxType, nrBoxesToAdd);
+	scheduleSingleBox(boxStartTimeCoordinate, boxType);
 
 	return greedyBoxPinIds;
 }
@@ -862,4 +931,18 @@ int schedulerLevelInfo::getAxis(int offset)
 int boxConfiguration::getBoxTotalDimension(int boxType, int axis)
 {
 	return boxSize[boxType][axis] + distBetweenBoxes[axis];
+}
+
+boxConfiguration::boxConfiguration()
+{
+	_pinScenario = PINSVERTICAL;
+	_heightStepSize = 0;
+
+	boxSize.resize(2);
+	int bsizetmp[] = {15 * DELTA, 5 * DELTA, 10 * DELTA, 30, 30, 30};
+	boxSize[0] = std::vector<int>(bsizetmp + 0, bsizetmp + 3);
+	boxSize[1] = std::vector<int>(bsizetmp + 3, bsizetmp + 6);
+
+	int distatmp[] = { DELTA, DELTA, DELTA };
+	distBetweenBoxes = std::vector<int>(distatmp + 0, distatmp + 4);
 }

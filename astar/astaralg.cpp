@@ -2,9 +2,12 @@
 #include "fileformats/generaldefines.h"
 #include "pins/pinconstants.h"
 
+#include "utils/profiling.h"
+
 Pathfinder::Pathfinder()
 {
 	this->boxworld = NULL;
+	allowConnectionThroughChannel = false;
 }
 
 void Pathfinder::useBoxWorld(boxworld2* box)
@@ -52,7 +55,12 @@ bool Pathfinder::checkCondition(Point* p1, Point* p2, int axes[])
 	return ret;
 }
 
-PathfinderCode Pathfinder::aStar(Point* start, Point* end, int axes[], unsigned int steps, std::vector<Point*>& path)
+//Point* Pathfinder::computeNextChild(int* direction, Point* current)
+//{
+//
+//}
+
+PathfinderCode Pathfinder::aStar(Point* start, Point* end, int axes[], unsigned int steps, std::vector<Point*>& path, int timeDirection)
 {
     Point* current;
     Point* child;
@@ -63,12 +71,14 @@ PathfinderCode Pathfinder::aStar(Point* start, Point* end, int axes[], unsigned 
     cleanList(openList);
     cleanList(closedList);
 
+//    profiling::util_get_cpu_time_begin();
+
     std::list<Point*>::iterator i;
 
-    if(end->coord[CIRCUITDEPTH] < start->coord[CIRCUITDEPTH])
-	{
-		return PathFinderEndSoonerThanStart;
-	}
+//    if(end->coord[CIRCUITDEPTH] < start->coord[CIRCUITDEPTH])
+//	{
+//		return PathFinderEndSoonerThanStart;
+//	}
 
     // Add the start point to the openList
 	// Initially, only the start node is known.
@@ -93,30 +103,37 @@ PathfinderCode Pathfinder::aStar(Point* start, Point* end, int axes[], unsigned 
     {
         // Look for the smallest F value in the openList and make it the current point
     	// this should be a priority queue?
-        for (i = openList.begin(); i != openList.end(); ++ i)
+        /*for (i = openList.begin(); i != openList.end(); ++ i)
         {
             if (i == openList.begin() || (*i)->getFScore() <= current->getFScore())
             {
                 current = (*i);
             }
-        }
+        }*/
+
+    	if(openList.size() == 0)
+		{
+			break;
+		}
+
+    	current = *(openList.begin());
 
         closePoint(current);
 
         // Get all current's adjacent walkable points
         for(int i = 0; i < 6; i++)
         {
-			long z = ((i >= 0 && i < 2) ? 1 - 2*i : 0);
-			long y = ((i >= 2 && i < 4) ? 1 /*1 - 2*(i-2)*/: 0); //time only positive
-			long x = ((i >= 4 && i < 6) ? 1 - 2*(i-4) : 0);
+			long z1 = ((i >= 0 && i < 2) ? 1 - 2*i : 0);
+			long y1 = ((i >= 2 && i < 4) ? timeDirection /*1 - 2*(i-2)*/: 0); //time only positive
+			long x1 = ((i >= 4 && i < 6) ? 1 - 2*(i-4) : 0);
 
 			//do not try the same neighbour twice
 			if(i == 2)
 				i++;
 
-			x = x * DELTA;
-			y = y * DELTA;
-			z = z * DELTA;
+			long x = x1 * DELTA;
+			long y = y1 * DELTA;
+			long z = z1 * DELTA;
 
 			// Get this point
 			child = getOrCreatePoint(current->getX() + x, current->getY() + y, current->getZ() + z, true);
@@ -135,6 +152,49 @@ PathfinderCode Pathfinder::aStar(Point* start, Point* end, int axes[], unsigned 
 				continue;
 			}
 
+			/*
+			 * JPS type?
+			 */
+/*
+			bool firstChild = true;
+			Point* prevChild = NULL;
+			int nrJump = 1;
+			while(!child->closed && child->isFree()
+					&& child->getY() <= end->getY()
+					&& (child->getX() >= current->getX() - steps && child->getX() <= current->getX() + steps)
+					&& (child->getZ() >= current->getZ() - steps && child->getZ() <= current->getZ() + steps))
+			{
+				firstChild = false;
+
+				nrJump++;
+
+				x = nrJump * x1 * DELTA;
+				y = nrJump * y1 * DELTA;
+				z = nrJump * z1 * DELTA;
+
+				prevChild = child;
+				child = getOrCreatePoint(current->getX() + x, current->getY() + y, current->getZ() + z, true);
+
+//				printf("%s\n", child->coord.toString(':').c_str());
+			}
+
+			if(firstChild)
+			{
+				//there is nothing here, the direct child is blocked
+				if(!child->isFree())
+				{
+					closePoint(current);//???
+				}
+				continue;
+			}
+			else
+			{
+				//it has hit a block, or is on the margin
+				//step back, and add child
+				child = prevChild;
+			}
+			*/
+
 			// If it's already in the openList
 			if (child->opened)
 			{
@@ -145,31 +205,41 @@ PathfinderCode Pathfinder::aStar(Point* start, Point* end, int axes[], unsigned 
 					// Change its parent and g score
 					child->setParent(current);
 					child->computeScores(end);
+
+					//update the openedList
+					openList.erase(child->openedIt);
+					openPoint(child);
 				}
 			}
 			else
 			{
-				// Add it to the openList with current point as parent
-				openPoint(child);
-
 				// Compute it's g, h and f score
 				child->setParent(current);
 				child->computeScores(end);
+
+				// Add it to the openList with current point as parent
+				// add after having computed the scores
+				openPoint(child);
 			}
         }
 
         n ++;
     }
 
-    if(current == end /*same pointer, some coord?*/)
+//    printf("search took %f\n", profiling::util_get_cpu_time_end());
+
+    if(checkCondition(current, end, axes) /*same pointer, some coord?*/)
     {
-	    // Resolve the path starting from the end point
+//	    profiling::util_get_cpu_time_begin();
+    	// Resolve the path starting from the end point
 		while (current->hasParent() && current != start)
 		{
 			path.push_back(current);
 			current = current->getParent();
 		}
 		path.push_back(start);
+
+//		printf("preparation took %f\n", profiling::util_get_cpu_time_end());
     }
     else
     {
@@ -181,6 +251,9 @@ PathfinderCode Pathfinder::aStar(Point* start, Point* end, int axes[], unsigned 
 
 void Pathfinder::cleanList(std::list<Point*>& clist)
 {
+//	printf("start clean with %u els takes ", clist.size());
+//	profiling::util_get_cpu_time_begin();
+
 	std::list<Point*>::iterator i;
 
 	for (i = clist.begin(); i != clist.end(); ++ i)
@@ -188,6 +261,24 @@ void Pathfinder::cleanList(std::list<Point*>& clist)
 		(*i)->init();
 	}
 	clist.clear();
+
+//	printf("%f \n", profiling::util_get_cpu_time_end());
+}
+
+void Pathfinder::cleanList(std::multiset<Point*, pointComp>& clist)
+{
+//	printf("start clean with %u els takes ", clist.size());
+//	profiling::util_get_cpu_time_begin();
+
+	std::multiset<Point*>::iterator i;
+
+	for (i = clist.begin(); i != clist.end(); ++ i)
+	{
+		(*i)->init();
+	}
+	clist.clear();
+
+//	printf("%f \n", profiling::util_get_cpu_time_end());
 }
 
 Point* Pathfinder::getOrCreatePoint(long x, long y, long z, bool checkAwayFromBox)
@@ -233,15 +324,20 @@ bool Pathfinder::pointExists(long x, long y, long z)
 void Pathfinder::openPoint(Point* point)
 {
 	point->opened = true;
-	openList.push_back(point);
+
+	point->openedIt = openList.insert(point);
+//	openList.push_back(point);
 }
 
 void Pathfinder::closePoint(Point* point)
 {
-	point->opened = false;
-	point->closed = true;
+	if(point->opened)
+	{
+		point->opened = false;
+		openList.erase(point->openedIt);
+	}
 
-	openList.remove(point);
+	point->closed = true;
 	closedList.push_back(point);
 }
 
@@ -265,10 +361,15 @@ bool Pathfinder::isPointAwayFromBoxes(long x, long y, long z)
 
 		Visitor x;
 		x = boxworld->rtree.Query(RTree::AcceptOverlapping(bBox), x);
-//		x = boxworld->rtree.Query(RTree::AcceptEnclosing(bBox), x);
 		bool doesNotTouch = (x.count == 0);
 
-		isAway = isAway && doesNotTouch;
+		bool channelOverlap = false;
+		if(!allowConnectionThroughChannel)
+			channelOverlap = boxworld->connectionsBox.overlaps(bBox);
+
+		bool geomOverlap = boxworld->geomBoundingBox.overlaps(bBox);
+
+		isAway = isAway && doesNotTouch && ! channelOverlap && !geomOverlap;
 	}
 
 	return isAway;

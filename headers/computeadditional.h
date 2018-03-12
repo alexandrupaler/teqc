@@ -28,6 +28,8 @@ public:
 	 * @return the cmf
 	 */
 	double sum(int nrGates, int nrDistillations, double failProb);
+	double sum2(int nrGates, int nrDistillations, double failProb);
+
 
 //	int findMiddle( int tgates, int astates, double afail, double targetprob);
 
@@ -40,6 +42,14 @@ public:
 	 * @return the number of necessary distillation boxes required for achieving targetProb
 	 */
 	int findParam(int nrGates, double failProb, double targeProb);
+
+	/**
+	 * Numerical Recipes in C
+	 */
+	float gammln(float xx);
+	double bico (int n, int k);
+	double factln(int n);
+
 };
 
 #endif

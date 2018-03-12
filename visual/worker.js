@@ -5,8 +5,6 @@ importScripts('libs/PalerBoxBufferGeometry.js');
 var d = new Date();
 var n = d.getTime(); 
 
-importScripts('circuit.raw.in.adam?id='+n);
-
 function profile(msg)
 {
   console.log(new Date().getTime() + " " + msg);
@@ -14,9 +12,13 @@ function profile(msg)
 
 function echoGeometries()
 {
-  console.log(self.totalBounding.getAttribute('position').array.length);
-  console.log(self.totalPrimal.getAttribute('position').array.length);
-  console.log(self.totalDual.getAttribute('position').array.length);
+  console.log("vtx " + self.totalBounding.getAttribute('position').array.length);
+  console.log("vtx " + self.totalPrimal.getAttribute('position').array.length);
+  console.log("vtx " + self.totalDual.getAttribute('position').array.length);
+  
+  console.log("idx " + self.totalBounding.getIndex().array.length);
+  console.log("idx " + self.totalPrimal.getIndex().array.length);
+  console.log("idx " + self.totalDual.getIndex().array.length);
 }
 
 function copyToBuffer(buffer, vectors)
@@ -24,9 +26,16 @@ function copyToBuffer(buffer, vectors)
   var offset = 0;
   for ( var i = 0, l = vectors.length; i < l; i ++ ) 
   {
-			 buffer[i] = vectors[i];
-		}
+    buffer[i] = vectors[i];
+  }
 }
+/*
+.position = .P
+.defects = .D
+.defects.primal = .D.p
+.defects.dual = .D.d
+.corrs = .C
+*/
 
 function makeBoundingBoxes(plumb)
 {
@@ -36,12 +45,16 @@ function makeBoundingBoxes(plumb)
   
 	for (var i=0; i<plumb.plumbs.length; i++)
   {
-		var boxparam = plumb.plumbs[i].position;
-		self.totalBounding.addBox(boxparam, [1,1,1]);
+		var boxparam = plumb.plumbs[i].P;
 		
-		var ppd = plumb.plumbs[i].defects;
+		self.totalBounding.addBox(boxparam, [1, 1, 1]);
 		
-		if(ppd.primal[0] == 1)
+		var ppd = plumb.plumbs[i].D;
+		
+		//if(ppd.p[0] == 1)
+		var bitPosition = 8;
+		
+		if((ppd.p & bitPosition) == bitPosition)
 		{
 		  var dim = [0.3, 0.3, 0.3];
 		  
@@ -49,23 +62,28 @@ function makeBoundingBoxes(plumb)
 		  //self.totalPrimal.merge(b1);
 		  self.totalPrimal.addBox(boxparam, dim);
 		  
-		  for(j=1; j<4; j++)
+		  for(var j=1; j<4; j++)
 		  {
-		    if(ppd.primal[j] == 0)
-		      continue;
-		    
-		    dim[j - 1] = 0.7;
-		    boxparam[ j - 1] += 0.3;
-		    
-		    //var b2 = constructBox(boxparam, dim, 'red', false);
-		    //self.totalPrimal.merge(b2);
-		    self.totalPrimal.addBox(boxparam, dim);
-		      
-		    boxparam[ j - 1] -= 0.3;
-		    dim[j - 1] = 0.3;
+		    //if(ppd.p[j] == 0)
+		    bitPosition = 1 << (3 - j);
+		    if((ppd.p & bitPosition) == bitPosition)
+		    {
+				  dim[j - 1] = 0.7;
+				  boxparam[ j - 1] += 0.3;
+				  
+				  //var b2 = constructBox(boxparam, dim, 'red', false);
+				  //self.totalPrimal.merge(b2);
+				  self.totalPrimal.addBox(boxparam, dim);
+				   
+				  dim[j - 1] = 0.3;
+				  boxparam[ j - 1] -= 0.3;
+		    }
 		  }
 		}
-		if(ppd.dual[0] == 1)
+		
+		//if(ppd.d[0] == 1)
+		bitPosition = 8;
+		if((ppd.d & bitPosition) == bitPosition)
 		{
 		  boxparam[0] += 0.5;
 		  boxparam[1] += 0.5;
@@ -76,9 +94,11 @@ function makeBoundingBoxes(plumb)
 		  //self.totalDual.merge(b3);
 		  self.totalDual.addBox(boxparam, dim);
 		
-		  for(j=1; j<4; j++)
+		  for(var j=1; j<4; j++)
 		  {
-	      if(ppd.dual[j] == 0)
+	      //if(ppd.d[j] == 0)
+	      bitPosition = 1 << (3 - j);
+      	if((ppd.d & bitPosition) == 0)
 	        continue;
 
 	      dim[j - 1]= 0.7;
@@ -109,18 +129,22 @@ self.addEventListener('message', function(msg) {
   
   if(msg.data.type == 'load')
   {
-    profile("XX");
-    //importScripts(msg.data.plumb);
-    profile("YY");
+    profile("start");
+    
+    importScripts('circuit.raw.in.adam?id='+n);
     
     var ldata = makeBoundingBoxes(plumb);
     echoGeometries();
+    profile("made boxes");
     
     self.postMessage({
       type: 'loaded',
       b1v: self.totalBounding.getAttribute('position').array.length,
       b2v: self.totalPrimal.getAttribute('position').array.length,
-      b3v: self.totalDual.getAttribute('position').array.length
+      b3v: self.totalDual.getAttribute('position').array.length,
+      b1i: self.totalBounding.getIndex().array.length,
+      b2i: self.totalPrimal.getIndex().array.length,
+      b3i: self.totalDual.getIndex().array.length
     });
     
   }
@@ -130,6 +154,9 @@ self.addEventListener('message', function(msg) {
     copyToBuffer( msg.data.buff1v, self.totalBounding.getAttribute('position').array);
     copyToBuffer( msg.data.buff2v, self.totalPrimal.getAttribute('position').array );
     copyToBuffer( msg.data.buff3v, self.totalDual.getAttribute('position').array );
+    copyToBuffer( msg.data.buff1i, self.totalBounding.getIndex().array);
+    copyToBuffer( msg.data.buff2i, self.totalPrimal.getIndex().array );
+    copyToBuffer( msg.data.buff3i, self.totalDual.getIndex().array );
     profile("copy2");
         
     //  now send back the results
@@ -137,7 +164,10 @@ self.addEventListener('message', function(msg) {
       type: 'results',
           buff1v : msg.data.buff1v,
           buff2v : msg.data.buff2v,
-          buff3v : msg.data.buff3v
-        }, [msg.data.buff1v.buffer, msg.data.buff2v.buffer, msg.data.buff3v.buffer]);
+          buff3v : msg.data.buff3v,
+          buff1i : msg.data.buff1i,
+          buff2i : msg.data.buff2i,
+          buff3i : msg.data.buff3i,
+        }, [msg.data.buff1v.buffer, msg.data.buff2v.buffer, msg.data.buff3v.buffer, msg.data.buff1i.buffer, msg.data.buff2i.buffer, msg.data.buff3i.buffer]);
   }
 })

@@ -64,6 +64,11 @@ std::string geometry::computeKey(std::pair<long, long>& p)
 
 bool geometry::addSegment(int idx1, int idx2)
 {
+	return addSegment(idx1, idx2, DONOTADDEXISTINGSEGMENT);
+}
+
+bool geometry::addSegment(int idx1, int idx2, int operationTypeForExistingSegment)
+{
 	if(idx1 == idx2)
 	{
 		//printf("zero distance...do not add\n");
@@ -81,6 +86,15 @@ bool geometry::addSegment(int idx1, int idx2)
 	std::map<std::string, long>::iterator it = segMap.find(key);
 	if(it != segMap.end())
 	{
+		if(operationTypeForExistingSegment == DONOTADDEXISTINGSEGMENT)
+		{
+			//do not nothing for now
+		}
+		if(operationTypeForExistingSegment == REMOVEEXISTINGSEGMENT)
+		{
+			segs.erase(segs.begin() + it->second);
+			segMap.erase(it);
+		}
 		return false;
 	}
 
@@ -95,12 +109,6 @@ int geometry::addCoordinate(convertcoordinate& coord)
 {
 	/*new linear search*/
 	std::string key = coord.toString(',');
-//	for(int i=0; i<3; i++)
-//	{
-//		char numstr[21]; // enough to hold all numbers up to 64-bits
-//		sprintf(numstr, ",%ld", coord[i]);
-//		key = key + numstr;
-//	}
 
 	std::map<std::string, long>::iterator it = coordMap.find(key);
 	if(it != coordMap.end())
@@ -136,4 +144,29 @@ void geometry::reset()
 	segMap.clear();
 
 	boundingbox.reset();
+}
+
+void geometry::appendGeometry(geometry& other, convertcoordinate& offset)
+{
+	std::map<long, long> indexOfIndex;
+	for(size_t i = 0; i < other.coords.size(); i++)
+	{
+		convertcoordinate c2 = other.coords[i];
+		c2[CIRCUITWIDTH] += offset[CIRCUITWIDTH];
+		c2[CIRCUITDEPTH] += offset[CIRCUITDEPTH];
+		c2[CIRCUITHEIGHT] += offset[CIRCUITHEIGHT];
+
+		long cindex = addCoordinate(c2);
+		indexOfIndex[i] = cindex;
+	}
+
+	for(size_t i = 0; i < other.segs.size(); i++)
+	{
+		addSegment(indexOfIndex[other.segs[i].first], indexOfIndex[other.segs[i].second], DONOTADDEXISTINGSEGMENT);
+	}
+
+	for(size_t i = 0; i < other.io.size(); i++)
+	{
+		io.push_back(indexOfIndex[other.io[i]]);
+	}
 }
