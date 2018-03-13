@@ -15,4 +15,4 @@ To use it:
 3) have a look in the visual folder (visual/localscript.sh)
 
 The quantum circuit file is bin/circuit.raw.in
-It is possible to generate adders and other circuits directly in the code (see code starting at [here](oldconvert.cpp#L440) ).
+It is possible to generate adders and other circuits directly in the code (see code starting at [here](https://github.com/alexandrupaler/tqec/blob/180fcfddf377c2543d231aa6cd6c92cfe0ba6edd/oldconvertft.cpp#L440)).
