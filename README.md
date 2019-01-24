@@ -8,7 +8,7 @@ Please reference http://www.nature.com/articles/srep30600 (http://arxiv.org/abs/
 
 To use it:
 
-1) make
+1) make all
 
 2) make cpbin (copies some files into bin)
 
